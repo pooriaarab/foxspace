@@ -167,10 +167,8 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
       io.err(`foxspace: ${error.message}\n\n${USAGE}`);
       return 2;
     }
-    if (error instanceof FoxspaceError) {
-      io.err(`foxspace: ${error.message}\n`);
-      return 1;
-    }
-    throw error;
+    // C4: any other error, such as ENOTDIR or EACCES from the store, is one line too.
+    io.err(`foxspace: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
   }
 }
