@@ -13,3 +13,5 @@ export { INJECT_LIMIT, PROVIDERS, providerById, providerForHost } from "./provid
 export type { Provider, ProviderId, SyncBox } from "./providers.js";
 export { renderForSync, renderSpace } from "./render.js";
 export type { Render, RenderFormat, RenderOptions } from "./render.js";
+export { MAX_IMPORT_BYTES, parseImport, parseJson, parsePaste } from "./import.js";
+export type { ImportFormat, ImportResult } from "./import.js";

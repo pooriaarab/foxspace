@@ -40,6 +40,12 @@ export interface Spaces {
   setNeverShare(id: string, terms: string[]): Promise<Space>;
   /** Add never-share terms that the space does not have yet. */
   addNeverShare(id: string, terms: string[]): Promise<Space>;
+  /**
+   * Add spaces from a foxspace/v1 file as new spaces, with new ids. A taken
+   * name gets " (2)". An added space is never agent-readable: the user opts
+   * in again (I9).
+   */
+  addSpaces(spaces: Space[]): Promise<Space[]>;
   /** The whole record, which is also the export format. */
   export(): Promise<SpacesState>;
 }
@@ -165,6 +171,18 @@ export function createSpaces(options: SpacesOptions): Spaces {
         if (!Array.isArray(terms)) throw new FoxspaceError("bad-space", "Never-share terms must be a list.");
         space.neverShare = unique([...space.neverShare, ...terms.map((t, i) => checkTerm(t, `Never-share term ${i + 1}`))]);
         return touch(space, stamp);
+      }),
+    addSpaces: (incoming) =>
+      change((state, stamp) => {
+        if (state.spaces.length + incoming.length > LIMITS.spaces) throw new FoxspaceError("bad-space", `That would make more than ${LIMITS.spaces} spaces.`);
+        const added = incoming.map((s) => {
+          let name = s.name;
+          for (let n = 2; state.spaces.some((x) => same(x.name, name)); n++) name = `${s.name.slice(0, LIMITS.name - 5)} (${n})`;
+          const space: Space = { ...structuredClone(s), id: newId(), name, items: s.items.map((i) => ({ ...i, id: newId() })), agentReadable: false, createdAt: stamp, updatedAt: stamp };
+          state.spaces.push(space);
+          return space;
+        });
+        return added;
       }),
     export: () => serial(load),
   };
