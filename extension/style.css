@@ -124,3 +124,20 @@ select.sens[data-level="private"] { color: var(--muted); border-style: dashed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* The picker and guard frames, on a chat page */
+body.frame { margin: 0; padding: 12px 14px 14px; background: var(--bg); height: 100vh; overflow: auto; }
+body.frame header h1 { font-size: 15px; }
+body.frame header button { margin-left: auto; }
+.field-label { display: block; font-size: 12.5px; color: var(--muted); margin: 8px 0 4px; }
+.picks { margin-top: 10px; max-height: 200px; overflow: auto; scrollbar-width: thin; }
+.picks li { padding: 5px 0; border-top: 1px solid var(--line); }
+.picks li:first-child { border-top: 0; }
+.picks label { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; font-size: 13px; cursor: pointer; }
+.picks input { width: auto; margin-top: 3px; }
+.picks .text { overflow-wrap: anywhere; }
+.picks b { font-weight: 550; color: var(--muted); }
+.level { font-size: 11.5px; font-weight: 550; border: 1px solid var(--line-strong); border-radius: 999px; padding: 0 7px; color: var(--ok); }
+.level.ask { color: var(--accent); }
+body.frame pre { max-height: 140px; overflow: auto; margin-top: 8px; scrollbar-width: thin; }
+pre.empty { color: var(--muted); font-family: inherit; }
