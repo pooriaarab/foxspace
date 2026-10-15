@@ -4,7 +4,7 @@
 import { open } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { FoxspaceError } from "./errors.js";
-import { createGuard } from "./guard.js";
+import { createGuard, guardTermsOf } from "./guard.js";
 import { MAX_IMPORT_BYTES, parseImport } from "./import.js";
 import { openSpaces } from "./node.js";
 import { providerById } from "./providers.js";
@@ -130,6 +130,9 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
           render = renderForSync(space, flags.for, box, opts);
         }
         if (!render.text) throw new FoxspaceError("bad-request", render.empty ?? "Nothing to render.");
+        const check = createGuard(guardTermsOf(await spaces.list()))(render.text);
+        if (check.tooLong) throw new FoxspaceError("bad-request", "This block is too long to check for never-share terms.");
+        if (!check.ok) throw new FoxspaceError("bad-request", `This block holds a never-share term: ${check.matches.map((m) => `"${m.term}"`).join(", ")}. Make that item private, or leave it unticked.`);
         io.out(`${render.text}\n`);
         const left = render.left;
         const notes = [left.private && `${left.private} private`, left.unticked && `${left.unticked} not ticked`, left.tooLong && `${left.tooLong} too long`].filter(Boolean);

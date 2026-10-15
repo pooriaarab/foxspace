@@ -8,8 +8,11 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { FoxspaceError } from "./errors.js";
+import { createGuard, guardTermsOf } from "./guard.js";
 import { renderSpace } from "./render.js";
 import type { Spaces } from "./spaces.js";
+
+export const HOLDS_TERM = "has a public item with a never-share term, so foxspace does not give it out. The user can make that item private in foxspace.";
 
 const text = (value: unknown, isError = false): CallToolResult => ({
   content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }],
@@ -55,6 +58,8 @@ export function createMcpServer(spaces: Spaces): McpServer {
         if (!found.agentReadable) throw new FoxspaceError("not-found", `There is no space ${JSON.stringify(space)}.`);
         // No ticks: an agent cannot tick, so no "ask" item is rendered.
         const render = renderSpace(found, { format: format ?? "text", ticked: [] });
+        // G10: no person sees this block before the agent does, so the agent gets no term, not even its name.
+        if (render.text && !createGuard(guardTermsOf(await spaces.list()))(render.text).ok) return text(`foxspace: Space "${found.name}" ${HOLDS_TERM}`, true);
         return text(render.text || `foxspace: ${render.empty}`, !render.text);
       }),
   );

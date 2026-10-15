@@ -9,7 +9,7 @@
 // - the content script, in the top frame of a supported chat site. It may
 //   only ask for a guard check and report a send; it never gets a space.
 import { IdbStore, Log, idbKey } from "foxtrail";
-import { FoxspaceError, INJECT_LIMIT, createGuard, createSpaces, parseImport, parsePaste, providerForHost, renderForSync, renderSpace, siteForHost, storageAreaStore } from "../src/index.ts";
+import { FoxspaceError, INJECT_LIMIT, createGuard, createSpaces, guardTermsOf, parseImport, parsePaste, providerForHost, renderForSync, renderSpace, siteForHost, storageAreaStore } from "../src/index.ts";
 
 export const spaces = createSpaces({ store: storageAreaStore(browser.storage.local) });
 
@@ -41,19 +41,11 @@ const held = browser.storage.session;
 const tokenOf = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const toTop = (tabId, message) => browser.tabs.sendMessage(tabId, message, { frameId: 0 });
 
-// A short private item guards itself: typing it into a chat stops the send too.
-const PRIVATE_TERM_CHARS = 80;
-const termsOf = (all) =>
-  all.flatMap((s) => [
-    ...s.neverShare.map((term) => ({ term, from: s.name })),
-    ...s.items.filter((i) => i.sensitivity === "private" && i.text.length <= PRIVATE_TERM_CHARS).map((i) => ({ term: i.text.replace(/[.\s]+$/, ""), from: `${s.name}, private item` })),
-  ]);
-
 /** The block for a pick, and the never-share terms in it: an item can hold one (G10). */
 async function block(id, ticked) {
   const [space, all] = await Promise.all([spaces.get(id), spaces.list()]);
   const render = renderSpace(space, { ticked, limit: INJECT_LIMIT });
-  return { space, render, stops: createGuard(termsOf(all))(render.text).matches };
+  return { space, render, stops: createGuard(guardTermsOf(all))(render.text).matches };
 }
 
 async function importInto({ text, into }) {
@@ -78,7 +70,12 @@ export const pageHandlers = {
   "spaces:never-share": ({ id, terms }) => spaces.setNeverShare(id, terms),
   "spaces:import": importInto,
   "spaces:export": () => spaces.export(),
-  "sync:render": async ({ id, provider, box, ticked, format }) => renderForSync(await spaces.get(id), provider, box, { ticked, format }),
+  // The sync page gets the never-share terms in its text too (G10): it is the user's own page.
+  "sync:render": async ({ id, provider, box, ticked, format }) => {
+    const [space, all] = await Promise.all([spaces.get(id), spaces.list()]);
+    const render = renderForSync(space, provider, box, { ticked, format });
+    return { ...render, stops: createGuard(guardTermsOf(all))(render.text).matches };
+  },
   "trail:list": async () => {
     const log = await openTrail();
     const [entries, check, { trailError }] = await Promise.all([log.entries(), log.verify(), browser.storage.local.get("trailError")]);
@@ -133,7 +130,7 @@ browser.commands.onCommand.addListener((name) => {
 export const contentHandlers = {
   "content:guard": async ({ text }) => {
     if (typeof text !== "string") throw new FoxspaceError("bad-request", "The text must be a string.");
-    const result = createGuard(termsOf(await spaces.list()))(text);
+    const result = createGuard(guardTermsOf(await spaces.list()))(text);
     if (result.ok) return { ok: true };
     const token = tokenOf();
     await held.set({ [token]: { matches: result.matches, tooLong: result.tooLong } });

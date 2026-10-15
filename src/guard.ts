@@ -4,6 +4,8 @@
 // other digits or other spacing still matches. A term matches whole words
 // only.
 
+import type { Space } from "./schema.js";
+
 /** Text longer than this is not checked; it counts as a match (G6). */
 export const MAX_GUARD_CHARS = 100_000;
 /** A term of this many digits or more matches by its digits alone (G4). */
@@ -89,6 +91,17 @@ function pattern(term: string): RegExp | undefined {
   // Any term, also with its separators taken out ("ACME42") or put in ("AB 1234 56").
   const body = [...norm.replaceAll(" ", "")].map(escape).join(" ?");
   return new RegExp(`(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])`, "u");
+}
+
+/** A private item this short guards itself: typing it into a chat stops the send too. */
+export const PRIVATE_TERM_CHARS = 80;
+
+/** The terms that the guard checks for these spaces: never-share terms and short private items. */
+export function guardTermsOf(spaces: Space[]): GuardTerm[] {
+  return spaces.flatMap((s) => [
+    ...s.neverShare.map((term) => ({ term, from: s.name })),
+    ...s.items.filter((i) => i.sensitivity === "private" && i.text.length <= PRIVATE_TERM_CHARS).map((i) => ({ term: i.text.replace(/[.\s]+$/, ""), from: `${s.name}, private item` })),
+  ]);
 }
 
 /** Secrets the guard stops with no term set: API keys and private keys, matched on the raw text. */
