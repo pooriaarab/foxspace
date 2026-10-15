@@ -60,6 +60,26 @@ describe("guard", () => {
     expect(ids("passport XAB123456").ok).toBe(true);
   });
 
+  it("G12 matches a term with its separators taken out or put in, at any length", () => {
+    const g = createGuard([{ term: "ACME-42", from: "Work" }, { term: "Project X", from: "Work" }, { term: "acme", from: "Work" }]);
+    const terms = (text: string) => g(text).matches.map((m) => m.term);
+    expect(terms("ship ACME42 today")).toEqual(["ACME-42"]);
+    expect(terms("the ProjectX plan")).toEqual(["Project X"]);
+    expect(terms("from a.c.m.e now")).toEqual(["acme"]);
+    expect(terms("an acmes list")).toEqual([]);
+  });
+
+  it("G12 matches through lowercase Cyrillic lookalikes and Unicode digits", () => {
+    const g = createGuard([{ term: "token", from: "Work" }, { term: "item", from: "Work" }, { term: "Bob", from: "Work" }, { term: "123456", from: "Work" }]);
+    expect(g("my to\u043Aen").ok).toBe(false); // Cyrillic к
+    expect(g("an i\u0442e\u043C").ok).toBe(false); // Cyrillic т, м
+    expect(normalizeForGuard("\u043D\u0432")).toBe("hb"); // Cyrillic н, в
+    expect(g("pin \u0661\u0662\u0663\u0664\u0665\u0666").ok).toBe(false); // Arabic-Indic
+    expect(g("pin \u06F1\u06F2\u06F3\u06F4\u06F5\u06F6").ok).toBe(false); // Persian
+    expect(g("pin \u0967\u0968\u0969\u096A\u096B\u096C").ok).toBe(false); // Devanagari
+    expect(normalizeForGuard("\u0660\u0669 \u{1D7CE}")).toBe("09 0");
+  });
+
   it("G5 matches whole words only", () => {
     expect(hits("a banner for Anna")).toEqual([]);
     expect(hits("ask Ann.")).toEqual(["Ann"]);
