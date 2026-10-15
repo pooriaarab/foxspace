@@ -101,6 +101,16 @@ function start(site) {
     root.append(dialog);
     return dialog;
   };
+  // The site can re-render its composer during a check or while the dialog
+  // is open, so each later read finds it again (A17).
+  const composerNow = () => {
+    const found = findComposer(document, site);
+    return found.ok ? found.element : undefined;
+  };
+  const textNow = () => {
+    const composer = composerNow();
+    return composer ? composerText(composer) : "";
+  };
   const guard = (event, composer, replay) => {
     if (replaying) return; // X2: a send the user let through skips the guard once.
     const text = composerText(composer);
@@ -109,19 +119,19 @@ function start(site) {
     event.stopImmediatePropagation();
     if (holding) return;
     holding = true;
-    check(composer, text, replay);
+    check(text, replay);
   };
   // A send goes out only with the text that was checked. Text that changed
   // during the check, or while the dialog was open, is checked again (G11).
-  const check = (composer, text, replay) => {
+  const check = (text, replay) => {
     // A failed check stops the send too; the dialog says it could not check.
-    const stop = (token) => pending.set(token, { composer, text, replay, dialog: showGuard(token) });
+    const stop = (token) => pending.set(token, { text, replay, dialog: showGuard(token) });
     browser.runtime.sendMessage({ type: "content:guard", text }).then(
       (reply) => {
         if (!reply?.ok) return stop("check-failed");
         if (!reply.value.ok) return stop(reply.value.token);
-        const now = composerText(composer);
-        if (now !== text) return check(composer, now, replay);
+        const now = textNow();
+        if (now !== text) return check(now, replay);
         holding = false;
         send(replay);
       },
@@ -142,13 +152,13 @@ function start(site) {
     pending.delete(token);
     held.dialog.remove();
     if (choice === "send") {
-      const now = composerText(held.composer);
-      if (now !== held.text) return check(held.composer, now, held.replay);
+      const now = textNow();
+      if (now !== held.text) return check(now, held.replay);
       holding = false;
       return send(held.replay);
     }
     holding = false;
-    held.composer.focus();
+    composerNow()?.focus();
   };
   // Window, capture phase, from document_start: before any listener of the site.
   addEventListener("keydown", (event) => {
@@ -158,8 +168,9 @@ function start(site) {
     const init = { key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true, composed: true, ctrlKey: event.ctrlKey, metaKey: event.metaKey };
     // After Send anyway the focus is in the dialog; Quill acts on keys only while it has it.
     guard(event, found.element, () => {
-      found.element.focus();
-      found.element.dispatchEvent(new KeyboardEvent("keydown", init));
+      const composer = composerNow();
+      composer?.focus();
+      composer?.dispatchEvent(new KeyboardEvent("keydown", init));
     });
   }, true);
   const SEND = site.send.join(", ");

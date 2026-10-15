@@ -319,6 +319,16 @@ try {
     await dialog.click("#send");
     await poll(page, () => document.querySelectorAll("#sent li").length === 2, undefined, 5000).catch(() => false);
     check(`${host}: Send anyway sends the stopped Enter`, "my passport is AB123456", (await sent(page))[1] ?? "");
+    // The site re-renders the composer, with the draft, while the dialog is open (A17).
+    await page.click(composer);
+    await page.keyboard.type("my passport is AB123456");
+    await page.keyboard.press("Enter");
+    dialog = await frameOf(page, "/guard.html");
+    await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
+    await page.evaluate(() => window.chatEditor.rerender(true));
+    await dialog.click("#send");
+    await poll(page, () => document.querySelectorAll("#sent li").length === 3, undefined, 5000).catch(() => false);
+    check(`${host}: Send anyway after a re-render sends from the new composer`, "my passport is AB123456", (await sent(page))[2] ?? "");
   }
 
   // 10. A public item that holds a never-share term: the picker names it and does not insert it (G10).
