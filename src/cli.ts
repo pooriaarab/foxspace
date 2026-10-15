@@ -23,6 +23,7 @@ export const USAGE = `Usage: foxspace <command>
   import <file> [--into <space>]
                                 Add a foxspace, foxcache, foxpack or foxprefs export
   guard <text...>               Check text against every never-share term; - reads stdin
+  mcp                           Serve the read-only MCP server on stdio
 
 <space> is a space id or name. "ask" items go in only with --tick <item id>.
 Providers: chatgpt, claude, mistral, gemini, perplexity, grok, deepseek.
@@ -152,6 +153,12 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
         if (result.tooLong) io.out("Stop: the text is too long to check.\n");
         for (const m of result.matches) io.out(`Stop: "${m.term}" (never share, from ${m.from}).\n`);
         return 3;
+      }
+      case "mcp": {
+        need(args, 0);
+        const { serveMcp } = await import("./mcp.js");
+        await serveMcp(spaces);
+        return 0;
       }
       default:
         throw new UsageError(`unknown command ${JSON.stringify(command)}`);
