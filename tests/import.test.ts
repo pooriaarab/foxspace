@@ -1,6 +1,6 @@
 // I1-I8 in docs/failure-modes.md: an import adds what the file says, or nothing.
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FoxspaceError, MAX_IMPORT_BYTES, createSpaces, memoryStore, parseImport, parsePaste } from "../src/index.js";
 
 const archive = readFileSync(new URL("fixtures/foxcache-archive.json", import.meta.url), "utf8");
@@ -38,6 +38,13 @@ describe("import", () => {
 
   it("I1 refuses a file over 1 MB before it parses it", () => {
     expect(errorOf(() => parseImport(`"${"x".repeat(MAX_IMPORT_BYTES)}"`))).toBe("too-large: The import is larger than 1024 KB.");
+  });
+
+  it("I1 refuses long text by its length, without a UTF-8 copy of it", () => {
+    const encode = vi.spyOn(TextEncoder.prototype, "encode");
+    expect(errorOf(() => parseImport("x".repeat(MAX_IMPORT_BYTES + 1)))).toBe("too-large: The import is larger than 1024 KB.");
+    expect(encode).not.toHaveBeenCalled();
+    encode.mockRestore();
   });
 
   it("I2 refuses __proto__, constructor and prototype keys, and changes no prototype", () => {
