@@ -29,6 +29,21 @@ function start(site) {
   root.append(style, button);
   let frame;
 
+  // The host is in the page's light DOM, so a hostile page can restyle it,
+  // or <html>, to hide the picker over a decoy and get the user's clicks on
+  // Insert (A6). foxspace acts only while both draw the UI as it is. An
+  // empty value is the initial one.
+  const NORMAL = { opacity: "1", visibility: "visible", filter: "none", clipPath: "none", maskImage: "none", mixBlendMode: "normal" };
+  const HIDES = "This page hides the foxspace picker, so foxspace does not open it or insert from it.";
+  const hidden = () => {
+    const own = getComputedStyle(host);
+    if (!host.isConnected || own.display === "none" || !["", "none"].includes(own.transform)) return true;
+    return [own, getComputedStyle(document.documentElement)].some((s) => Object.entries(NORMAL).some(([key, value]) => !["", value].includes(s[key])));
+  };
+  const hideCheck = () => {
+    if (frame && hidden()) close();
+  };
+
   const composerBox = () => {
     const found = findComposer(document, site);
     return found.ok ? found.element.getBoundingClientRect() : undefined;
@@ -40,6 +55,7 @@ function start(site) {
     button.hidden = !box;
     if (box) Object.assign(button.style, { left: `${Math.min(innerWidth - 36, box.right - 32)}px`, top: `${Math.max(4, box.top - 34)}px` });
     if (frame && box) placeFrame(box);
+    hideCheck();
   };
   const placeFrame = (box) => {
     const width = Math.min(400, innerWidth - 16);
@@ -57,6 +73,7 @@ function start(site) {
   };
   const open = () => {
     if (frame) return close();
+    if (hidden()) return HIDES;
     frame = document.createElement("iframe");
     frame.src = browser.runtime.getURL("picker.html");
     frame.title = "foxspace";
@@ -64,6 +81,8 @@ function start(site) {
     root.append(frame);
   };
   button.addEventListener("click", open);
+  // A click into the picker moves the focus out of the page.
+  addEventListener("blur", hideCheck, true);
 
   // The guard (G8, G9). At a send, it reads the composer text, and nothing
   // else, and asks the event page. The terms stay there: the content
@@ -152,9 +171,10 @@ function start(site) {
   browser.runtime.onMessage.addListener((message, sender) => {
     if (sender.id !== browser.runtime.id) return undefined;
     switch (message?.type) {
-      case "foxspace:open-picker":
-        open();
-        return Promise.resolve({ ok: true });
+      case "foxspace:open-picker": {
+        const error = open();
+        return Promise.resolve(error ? { ok: false, error } : { ok: true });
+      }
       case "foxspace:close-picker":
         close();
         return Promise.resolve({ ok: true });
@@ -166,6 +186,10 @@ function start(site) {
         return Promise.resolve({ ok: true, text: found.ok ? composerText(found.element) : "" });
       }
       case "foxspace:insert": {
+        if (hidden()) {
+          close();
+          return Promise.resolve({ ok: false, error: HIDES });
+        }
         const found = findComposer(document, site);
         if (!found.ok) return Promise.resolve({ ok: false, error: found.error });
         const landed = insertBlock(found.element, message.text);
