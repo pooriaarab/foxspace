@@ -64,6 +64,16 @@ try {
   const spaces = await fox.openExtensionPage("spaces.html");
   await poll(spaces, () => Boolean(document.getElementById("new-name")));
   const statusText = () => spaces.evaluate(() => document.getElementById("status").textContent);
+  // 0. A new install has the two example spaces. Delete them, so the steps below start empty.
+  const listNames = () => spaces.evaluate(() => [...document.querySelectorAll("#list li button span:first-child")].map((s) => s.textContent));
+  await poll(spaces, () => document.querySelectorAll("#list li button").length === 2);
+  check("a new install has the example spaces", ["Trip to Japan", "Work: Acme launch"], (await listNames()).toSorted());
+  for (const left of [1, 0]) {
+    await spaces.evaluate(() => (window.confirm = () => true));
+    await spaces.click("#delete");
+    await poll(spaces, (n) => document.querySelectorAll("#list li button").length === n, left);
+  }
+  check("the example spaces can be deleted", [], await listNames());
   await spaces.type("#new-name", "Trip to Japan");
   await spaces.click("#new button");
   await poll(spaces, () => !document.getElementById("editor").hidden);

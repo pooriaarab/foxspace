@@ -23,7 +23,7 @@ function start(site) {
     iframe { position: fixed; border: 0; border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.35); background: transparent; color-scheme: normal; }`;
   const button = document.createElement("button");
   button.setAttribute("aria-label", "Add a foxspace space to this message");
-  button.title = "foxspace: add a space (Alt+Shift+K)";
+  button.title = "foxspace: add a space (Alt+Shift+K, or Control+Shift+K on a Mac)";
   button.hidden = true;
   button.append(Object.assign(document.createElement("img"), { src: browser.runtime.getURL("icons/icon-48.png"), alt: "" }));
   root.append(style, button);
@@ -161,6 +161,10 @@ function start(site) {
       case "foxspace:guard-decision":
         decide(message.token, message.choice);
         return Promise.resolve({ ok: true });
+      case "foxspace:read-composer": {
+        const found = findComposer(document, site);
+        return Promise.resolve({ ok: true, text: found.ok ? composerText(found.element) : "" });
+      }
       case "foxspace:insert": {
         const found = findComposer(document, site);
         if (!found.ok) return Promise.resolve({ ok: false, error: found.error });
