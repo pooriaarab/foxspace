@@ -39,7 +39,9 @@ async function preview() {
   $("count").textContent = render.text ? `${render.text.length} characters` : "";
   // G10: a block that holds a never-share term does not go into the page, nor to the clipboard.
   const stopped = render.stops.length > 0;
-  $("insert").disabled = $("copy").disabled = !render.text || stopped;
+  $("copy").disabled = !render.text || stopped;
+  // Insert also takes the text in the add box: it adds that item first.
+  $("insert").disabled = (!render.text && !$("add-text").value.trim()) || stopped;
   const notes = [];
   if (render.left.tooLong) notes.push(`${render.left.tooLong} item${render.left.tooLong === 1 ? "" : "s"} did not fit.`);
   if (stopped) notes.push(`This block holds a never-share term: ${render.stops.map((m) => `"${m.term}"`).join(", ")}. Untick that item, or make it private.`);
@@ -82,8 +84,30 @@ async function load(pick) {
 
 async function start() {
   $("space").addEventListener("change", () => showSpace().catch(failed));
+  $("add-text").addEventListener("input", () => {
+    $("insert").disabled = (!render?.text && !$("add-text").value.trim()) || Boolean(render?.stops.length);
+  });
+  const draft = await ask("picker:draft").catch(() => "");
   await load();
-  if (!$("space").hidden) $("space").focus();
+  if (draft.trim() && !$("add").hidden) {
+    $("add-text").value = draft.trim();
+    // G10: a draft does not turn Insert on for a block that holds a never-share term.
+    $("insert").disabled = Boolean(render?.stops.length);
+    status("The text from the message box is ready to add. Pick a kind, then Add item or Insert.");
+    $("add-text").focus();
+  } else if (!$("space").hidden) $("space").focus();
+}
+
+// Add the add-box text to the chosen space; returns the new item id, or undefined.
+async function addTyped() {
+  const text = $("add-text").value.trim();
+  if (!text) return undefined;
+  const id = space().id;
+  const level = $("add-level").value;
+  const { added } = await ask("spaces:add", { id, items: [{ kind: $("add-kind").value, text, sensitivity: level }] });
+  $("add-text").value = "";
+  await load(id);
+  return { item: added[0]?.id, level };
 }
 
 $("new-space").addEventListener("click", () => {
@@ -106,11 +130,7 @@ $("make").addEventListener("submit", async (event) => {
 $("add").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    const id = space().id;
-    const level = $("add-level").value;
-    await ask("spaces:add", { id, items: [{ kind: $("add-kind").value, text: $("add-text").value.trim(), sensitivity: level }] });
-    $("add-text").value = "";
-    await load(id);
+    const { level } = await addTyped();
     status(level === "private" ? "Added. It is private, so it stays out of every message." : "Added.");
     $("add-text").focus();
   } catch (error) {
@@ -120,6 +140,11 @@ $("add").addEventListener("submit", async (event) => {
 
 $("insert").addEventListener("click", async () => {
   try {
+    const typed = await addTyped();
+    if (typed?.level === "ask" && typed.item) {
+      const box = document.querySelector(`input[data-item="${typed.item}"]`);
+      if (box) box.checked = true;
+    }
     const r = await ask("picker:insert", { id: space().id, ticked: ticked() });
     if (!r.ok) return status(r.error, true);
     if (!r.landed) return status(`${state.label} did not take the text. Press Copy, then paste it into the message box.`, true);

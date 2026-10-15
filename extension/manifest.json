@@ -37,7 +37,7 @@
   ],
   "commands": {
     "open-picker": {
-      "suggested_key": { "default": "Alt+Shift+K" },
+      "suggested_key": { "default": "Alt+Shift+K", "mac": "MacCtrl+Shift+K" },
       "description": "Add a space to the message box"
     }
   },
