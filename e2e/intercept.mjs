@@ -1,7 +1,8 @@
 // Serve synthetic copies of real chat site origins with WebDriver BiDi
 // network interception: network.addIntercept stops each request to these
 // hosts before it leaves Firefox, and network.provideResponse answers it
-// from e2e/sites/<host>/ (shared files from e2e/sites/). The page then has
+// from e2e/sites/<host>/ (shared files from e2e/sites/, and the bundled
+// editors from dist-e2e-sites/, which e2e/run.mjs builds). The page then has
 // the real origin, https://chatgpt.com, so the extension's content script
 // and its host matches run as they do on the real site. No request reaches
 // the real site.
@@ -10,12 +11,13 @@ import { extname, join, normalize } from "node:path";
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8" };
 const ROOT = "e2e/sites";
+export const BUILT = "dist-e2e-sites";
 
 function fileFor(url) {
   const { host, pathname } = new URL(url);
   const path = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, "");
   const page = pathname === "/" ? "index.html" : extname(path) ? path : `${path}.html`;
-  for (const file of [join(ROOT, host, page), join(ROOT, page)]) if (existsSync(file) && statSync(file).isFile()) return file;
+  for (const file of [join(ROOT, host, page), join(ROOT, page), join(BUILT, page)]) if (existsSync(file) && statSync(file).isFile()) return file;
   return undefined;
 }
 

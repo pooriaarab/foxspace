@@ -1,22 +1,35 @@
-// The Firefox E2E test. Firefox gets synthetic copies of three real chat
-// origins, https://chatgpt.com, https://claude.ai and
-// https://chat.deepseek.com, through WebDriver BiDi network interception
-// (e2e/intercept.mjs): a ProseMirror-style editor on the first two and a
-// React-style textarea on the third. The extension's content script runs
-// there as on the real sites. The test drives the real pages: the spaces
-// page (create, import a foxcache archive, add, never-share), the picker
-// (private and "ask" items), the guard (stop, Edit, Send anyway), a
-// redesigned page with no composer, the sync page and the trail.
+// The Firefox E2E test. Firefox gets synthetic copies of the seven chat
+// origins foxspace supports through WebDriver BiDi network interception
+// (e2e/intercept.mjs), each with the editor that site uses: the real
+// prosemirror-view on ChatGPT, Claude, Le Chat and Grok, lexical on
+// Perplexity, quill on Gemini and a React-style textarea on DeepSeek
+// (e2e/editors/editor.js). The extension's content script runs there as on
+// the real sites, and the checks read each editor's own model. The test
+// drives the real pages: the spaces page (create, import a foxcache archive,
+// add, never-share), the picker (private and "ask" items), the guard (stop,
+// Edit, Send anyway), a redesigned page with no composer, the sync page,
+// the trail, and an insert and an Enter send on every site.
 // Writes artifacts/e2e-<date>.json after the checks.
 // Usage: pnpm e2e [--headed]. Env: FIREFOX, or FOXKIT_BROWSER=ichabod with ICHABOD_API_KEY.
 import { readFileSync } from "node:fs";
 import { browserMode, launch, poll, writeArtifact } from "create-foxkit/e2e";
-import { interceptSites } from "./intercept.mjs";
+import { build } from "esbuild";
+import { BUILT, interceptSites } from "./intercept.mjs";
 
 const record = { startedAt: new Date().toISOString(), mode: browserMode(), checks: [] };
 const check = (name, expected, actual) => record.checks.push({ name, expected, actual, ok: JSON.stringify(actual) === JSON.stringify(expected) });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const HOSTS = ["chatgpt.com", "claude.ai", "chat.deepseek.com"];
+// Each site, with the composer selector of its foxspace adapter.
+const SITES = {
+  "chatgpt.com": "#prompt-textarea",
+  "claude.ai": "div.ProseMirror",
+  "chat.mistral.ai": "div.ProseMirror",
+  "gemini.google.com": "rich-textarea .ql-editor",
+  "www.perplexity.ai": "#ask-input",
+  "grok.com": "div.tiptap.ProseMirror",
+  "chat.deepseek.com": "#chat-input",
+};
+const SPACE = "Kyoto in May";
 const ARCHIVE = readFileSync("tests/fixtures/foxcache-archive.json", "utf8");
 
 /** The extension frame at path inside a chat page, found by its location (BiDi reports about:blank). */
@@ -52,12 +65,22 @@ async function clickFox(page, composer) {
 }
 const sent = (page) => page.evaluate(() => [...document.querySelectorAll("#sent li")].map((li) => li.textContent));
 const editorState = (page) => page.evaluate(() => document.documentElement.dataset.editorState ?? "");
+/** Choose the space by name in the picker: the extension seeds two example spaces first. */
+async function pickSpace(picker, name) {
+  await picker.evaluate((n) => {
+    const select = document.getElementById("space");
+    select.value = [...select.options].find((o) => o.textContent === n).value;
+    select.dispatchEvent(new Event("change"));
+  }, name);
+  await poll(picker, () => document.getElementById("preview").textContent.includes("Plan by train."));
+}
 
 let fox;
 try {
+  await build({ entryPoints: ["e2e/editors/editor.js"], outfile: `${BUILT}/editor.js`, bundle: true, format: "esm", target: "firefox140", logLevel: "warning" });
   fox = await launch({ extension: "dist-e2e", headless: !process.argv.includes("--headed") });
   record.firefox = await fox.browser.version();
-  const intercept = await interceptSites(fox.browser, HOSTS);
+  const intercept = await interceptSites(fox.browser, Object.keys(SITES));
   record.interceptId = intercept.id;
 
   // 1. Build a space on the real spaces page: create, import the foxcache archive, add, never-share.
@@ -77,14 +100,14 @@ try {
     await poll(spaces, (n) => document.querySelectorAll("#list li button").length === n, left);
   }
   check("the example spaces can be deleted", [], await listNames());
-  await spaces.type("#new-name", "Trip to Japan");
+  await spaces.type("#new-name", SPACE);
   await spaces.click("#new button");
   await poll(spaces, () => !document.getElementById("editor").hidden);
-  check("the space is created", 'Created "Trip to Japan".', await statusText());
+  check("the space is created", `Created "${SPACE}".`, await statusText());
   await spaces.evaluate((text) => (document.getElementById("import-text").value = text), ARCHIVE);
   await spaces.click("#import");
   await poll(spaces, () => document.getElementById("status").textContent.startsWith("Imported"));
-  check("the foxcache archive imports", 'Imported foxcache/v1: added 5 items to "Trip to Japan". Not read: chats.', await statusText());
+  check("the foxcache archive imports", `Imported foxcache/v1: added 5 items to "${SPACE}". Not read: chats.`, await statusText());
   check("imported items keep their level, ask by default", ["public", "ask", "private", "ask", "public"], await spaces.evaluate(() => [...document.querySelectorAll("#items select.sens")].map((s) => s.value)));
   check("HTML in an import stays text (I3)", [0, true], await spaces.evaluate(() => [document.querySelectorAll("#items img").length, document.getElementById("items").textContent.includes("<img src=x")]));
   await spaces.select("#add-kind", "instructions");
@@ -98,9 +121,10 @@ try {
   await poll(spaces, () => document.getElementById("status").textContent.startsWith("Saved"));
   check("a never-share term is saved", "Saved 1 never-share term.", await statusText());
 
-  // 2. Inject on chatgpt.com (ProseMirror-style): public in, private never, "ask" only when ticked (R1, R2, A3).
+  // 2. Inject on chatgpt.com (ProseMirror): public in, private never, "ask" only when ticked (R1, R2, A3).
   const gpt = await openChat(fox, "https://chatgpt.com/", "#prompt-textarea");
   let picker = await clickFox(gpt, "#prompt-textarea");
+  await pickSpace(picker, SPACE);
   const preview = () => picker.evaluate(() => document.getElementById("preview").textContent);
   let text = await preview();
   check("the picker preview has the public items", [true, true, true], ["Plan by train.", "I am vegetarian", "Answer in short paragraphs."].map((s) => text.includes(s)));
@@ -109,11 +133,12 @@ try {
   await picker.evaluate(() => [...document.querySelectorAll("#items label")].find((l) => l.textContent.includes("3000 CAD")).querySelector("input").click());
   await poll(picker, () => document.getElementById("preview").textContent.includes("3000 CAD"));
   check("the page cannot read the picker or its preview (G8)", [false, true], await gpt.evaluate(() => [document.documentElement.innerText.includes("3000 CAD"), document.querySelector("foxspace-ui").shadowRoot === null]));
+  const block = await preview();
   await picker.click("#insert");
   await poll(gpt, () => (document.documentElement.dataset.editorState ?? "").includes("3000 CAD"));
   const state = await editorState(gpt);
   record.injected = state;
-  check("the editor took the block from input events (A3)", [true, true, true], ["Context for this chat", "Plan by train.", "3000 CAD"].map((s) => state.includes(s)));
+  check("ProseMirror's model holds the block, line for line (A3)", block, state);
   check("no private item and no unticked ask item went in (R1, R2)", [false, false], ["AB123456", "quiet hotels"].map((s) => state.includes(s)));
   check("the picker closes after the insert", true, await gone(gpt, "/picker.html"));
   check("nothing was sent by the insert", [], await sent(gpt));
@@ -127,9 +152,9 @@ try {
   await gpt.click('[data-testid="send-button"]');
   let dialog = await frameOf(gpt, "/guard.html");
   await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
-  check("the guard stops the send and names the term", ["AB123456 from Trip to Japan"], await dialog.evaluate(() => [...document.querySelectorAll("#terms li")].map((li) => li.textContent)));
+  check("the guard stops the send and names the term", [`AB123456 from ${SPACE}`], await dialog.evaluate(() => [...document.querySelectorAll("#terms li")].map((li) => li.textContent)));
   check("the stopped message was not sent", 1, (await sent(gpt)).length);
-  check("the page never sees the term or the dialog (G8)", [false, false], await gpt.evaluate(() => [document.documentElement.innerText.includes("AB123456"), document.documentElement.innerText.includes("from Trip to Japan")]));
+  check("the page never sees the term or the dialog (G8)", [false, false], await gpt.evaluate((n) => [document.documentElement.innerText.includes("AB123456"), document.documentElement.innerText.includes(`from ${n}`)], SPACE));
   // G11: an edit while the dialog is open is checked again before it goes out.
   await gpt.click("#prompt-textarea");
   await gpt.evaluate(() => document.execCommand("insertText", false, " Thanks."));
@@ -153,7 +178,7 @@ try {
   await dialog.click("#edit");
   await sleep(500);
   check("Edit sends nothing and keeps the text", [0, true, true], [(await sent(claude)).length, (await editorState(claude)).includes("ab123456"), await gone(claude, "/guard.html")]);
-  await claude.evaluate(() => (document.querySelector("div.ProseMirror").innerHTML = "<p><br></p>"));
+  await claude.evaluate(() => window.chatEditor.clear());
   await claude.click("div.ProseMirror");
   await claude.keyboard.type("Hello there");
   await claude.keyboard.press("Enter");
@@ -163,9 +188,11 @@ try {
   // 5. Inject into a React-style textarea on chat.deepseek.com.
   const deep = await openChat(fox, "https://chat.deepseek.com/", "#chat-input");
   picker = await clickFox(deep, "#chat-input");
+  await pickSpace(picker, SPACE);
+  const deepBlock = await preview();
   await picker.click("#insert");
   await poll(deep, () => (document.documentElement.dataset.editorState ?? "").includes("Plan by train."));
-  check("the textarea took the block from input events", true, (await editorState(deep)).startsWith("Context for this chat"));
+  check("the textarea took the block from input events", deepBlock, await editorState(deep));
 
   // 6. A redesign with no composer the adapter knows: the picker says so and inserts nothing (A1).
   const redesign = await fox.open("https://chatgpt.com/redesign");
@@ -182,12 +209,17 @@ try {
   // 7. The trail lists the two injections, and checks out.
   const trailPage = await fox.openExtensionPage("spaces.html");
   await poll(trailPage, () => document.querySelectorAll("#trail li b").length >= 2);
-  check("the trail lists each injection", ["Trip to Japan into chat.deepseek.com, 3 items", "Trip to Japan into chatgpt.com, 4 items"], await trailPage.evaluate(() => [...document.querySelectorAll("#trail li")].map((li) => li.firstChild.textContent + li.childNodes[1].textContent)));
+  check("the trail lists each injection", [`${SPACE} into chat.deepseek.com, 3 items`, `${SPACE} into chatgpt.com, 4 items`], await trailPage.evaluate(() => [...document.querySelectorAll("#trail li")].map((li) => li.firstChild.textContent + li.childNodes[1].textContent)));
   check("the trail checks out", "The trail checks out: no entry was changed or removed.", await trailPage.evaluate(() => document.getElementById("trail-check").textContent));
 
   // 8. Sync: the text for ChatGPT "More about you", sized for the box, with a copy (X4).
   const sync = await fox.openExtensionPage("sync.html");
   await poll(sync, () => document.getElementById("count").textContent);
+  await sync.evaluate((n) => {
+    const select = document.getElementById("space");
+    select.value = [...select.options].find((o) => o.textContent === n).value;
+    select.dispatchEvent(new Event("change"));
+  }, SPACE);
   await sync.select("#box", "more-about-you");
   await poll(sync, () => document.getElementById("target").textContent === "ChatGPT: More about you");
   await sync.evaluate(() => [...document.querySelectorAll("#ticks label")].find((l) => l.textContent.includes("3000 CAD")).querySelector("input").click());
@@ -201,7 +233,37 @@ try {
   await poll(sync, () => document.getElementById("status").textContent);
   check("Copy copies the sync text", `Copied ${syncText.length} characters. Paste them in ChatGPT: More about you.`, await sync.evaluate(() => document.getElementById("status").textContent));
 
-  // 9. A public item that holds a never-share term: the picker names it and does not insert it (G10).
+  // 9. Every site, with its own editor: the block goes in line for line, on
+  // an empty composer and before the text the user typed, and Enter sends
+  // the editor's model through the guard (A3, A12).
+  for (const [host, composer] of Object.entries(SITES)) {
+    const page = await openChat(fox, `https://${host}/`, composer);
+    picker = await clickFox(page, composer);
+    await pickSpace(picker, SPACE);
+    const want = await preview();
+    await picker.click("#insert");
+    await sleep(800);
+    check(`${host}: the editor's model holds the block on an empty composer`, want, await editorState(page));
+    if (!(await gone(page, "/picker.html"))) await picker.click("#close");
+    await page.evaluate(() => window.chatEditor.clear());
+    await page.click(composer);
+    await page.keyboard.type("hello world");
+    picker = await clickFox(page, composer);
+    await pickSpace(picker, SPACE);
+    await picker.evaluate(() => (document.getElementById("add-text").value = ""));
+    await picker.click("#insert");
+    await sleep(800);
+    check(`${host}: the block goes in before the typed text`, `${want}\n\nhello world`, await editorState(page));
+    const closed = await gone(page, "/picker.html");
+    check(`${host}: the picker says the block went in`, true, closed);
+    if (!closed) await picker.click("#close");
+    await page.click(composer);
+    await page.keyboard.press("Enter");
+    await poll(page, () => document.querySelectorAll("#sent li").length > 0, undefined, 5000).catch(() => false);
+    check(`${host}: Enter sends the editor's model through the guard`, [`${want}\n\nhello world`], await sent(page));
+  }
+
+  // 10. A public item that holds a never-share term: the picker names it and does not insert it (G10).
   await spaces.evaluate(() => {
     const select = [...document.querySelectorAll("#items li")].find((li) => li.textContent.includes("AB123456")).querySelector("select.sens");
     select.value = "public";
@@ -209,6 +271,7 @@ try {
   });
   await poll(spaces, () => document.getElementById("status").textContent === "Item is public now.");
   picker = await clickFox(deep, "#chat-input");
+  await pickSpace(picker, SPACE);
   await poll(picker, () => document.getElementById("left").textContent);
   check("a block with a never-share term cannot be inserted or copied", ['This block holds a never-share term: "AB123456". Untick that item, or make it private.', true, true], await picker.evaluate(() => [document.getElementById("left").textContent, document.getElementById("insert").disabled, document.getElementById("copy").disabled]));
   check("the page did not get it", false, (await editorState(deep)).includes("AB123456"));

@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Grok</title><link rel="stylesheet" href="/style.css"></head>
+<body class="grok"><main><h1>What do you want to know?</h1>
+<form class="composer" onsubmit="return false"><div id="editor"></div>
+<button class="send" aria-label="Submit" type="submit">&#8593;</button></form><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "prosemirror", host: "#editor", attrs: { class: "tiptap", "aria-label": "Ask Grok anything" }, send: 'button[aria-label="Submit"]' });</script>
+</body></html>

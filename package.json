@@ -42,12 +42,21 @@
     "e2e": "node scripts/build-ext.mjs --e2e && node e2e/run.mjs"
   },
   "devDependencies": {
+    "@lexical/rich-text": "^0.52.0",
     "@types/node": "^24.19.1",
     "create-foxkit": "^0.1.8",
     "esbuild": "^0.28.2",
     "foxtrail": "0.1.4",
     "happy-dom": "^21.0.1",
+    "lexical": "^0.52.0",
     "oxlint": "^1.87.0",
+    "prosemirror-commands": "^1.7.2",
+    "prosemirror-keymap": "^1.2.3",
+    "prosemirror-model": "^1.25.12",
+    "prosemirror-schema-basic": "^1.2.5",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-view": "^1.42.6",
+    "quill": "^2.0.3",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3",
     "web-ext": "^10.7.0"
