@@ -41,11 +41,11 @@ describe("foxspace MCP server", () => {
     expect(JSON.parse(r.text)).toEqual([{ id: trip.id, name: "Trip to Japan", publicItems: 1 }]);
   });
 
-  it("M1 gives public items only, and refuses a space that is not agent-readable", async () => {
+  it("M1 gives public items only, and answers a space that is not agent-readable as one that does not exist", async () => {
     const { call } = await connect();
     const r = await call("get_space", { space: "trip to japan" });
     expect(r).toEqual({ text: 'Context for this chat, from my foxspace "Trip to Japan":\n\nInstructions:\nPlan by train.', isError: false });
-    expect(await call("get_space", { space: "Work" })).toEqual({ text: 'foxspace: Space "Work" is not agent-readable. The user can mark it agent-readable in foxspace.', isError: true });
+    expect(await call("get_space", { space: "wORK" })).toEqual({ text: 'foxspace: There is no space "wORK".', isError: true });
     expect(await call("get_space", { space: "Nope" })).toEqual({ text: 'foxspace: There is no space "Nope".', isError: true });
   });
 });

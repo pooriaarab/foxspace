@@ -97,5 +97,5 @@ the reason, and it never guesses where text should go.
 | C1 | Bad usage (unknown command, missing argument, unknown flag) | Exit 2 with the usage text | tests/cli.test.ts |
 | C2 | `show` prints private items | Private text is masked; only its length shows | tests/cli.test.ts |
 | C3 | `guard` finds a term | Exit 3 and the term; exit 0 when clean | tests/cli.test.ts |
-| M1 | `get_space` gives a space that is not agent-readable, or an item that is not public | Not agent-readable: an error that says so. Only public items are rendered | tests/mcp.test.ts |
+| M1 | `get_space` gives a space that is not agent-readable, or an item that is not public, or tells an agent which hidden spaces exist | A space that is not agent-readable gets the same not-found answer as a name that does not exist, with the name as the agent wrote it. Only public items are rendered | tests/mcp.test.ts |
 | M2 | An MCP tool writes | There is no tool that writes; every tool is marked read-only | tests/mcp.test.ts |
