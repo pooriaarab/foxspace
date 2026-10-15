@@ -38,18 +38,26 @@ export function composerText(el: Composer): string {
   return el instanceof HTMLTextAreaElement ? el.value : (el.innerText ?? el.textContent ?? "");
 }
 
-const squash = (s: string) => s.replace(/\s+/g, " ").trim();
+const lines = (s: string) => s.split("\n").map((line) => line.trim()).filter(Boolean);
 
-/** Does the composer hold the block? Spacing may differ: editors turn newlines into paragraphs. */
+/**
+ * Does the composer hold the block, line for line? Blank lines may differ:
+ * editors turn each line into a paragraph. A block whose lines run
+ * together, or into the user's text, is not held.
+ */
 export function holds(el: Composer, block: string): boolean {
-  return squash(composerText(el)).includes(squash(block));
+  const have = lines(composerText(el));
+  const want = lines(block);
+  for (let at = 0; at + want.length <= have.length; at++) if (want.every((line, i) => have[at + i] === line)) return true;
+  return false;
 }
 
 /**
  * Put the block at the start of the composer, before what the user typed,
- * then read it back. Returns false when the site's editor did not take it.
+ * then read it back after the editor's update. Resolves false when the
+ * site's editor did not take it.
  */
-export function insertBlock(el: Composer, block: string): boolean {
+export async function insertBlock(el: Composer, block: string): Promise<boolean> {
   el.focus();
   const text = composerText(el).trim() ? `${block}\n\n` : block;
   if (el instanceof HTMLTextAreaElement) el.setSelectionRange(0, 0);
@@ -65,5 +73,7 @@ export function insertBlock(el: Composer, block: string): boolean {
     selection?.addRange(range);
   }
   document.execCommand("insertText", false, text);
+  // Editors render their model after the event that changed it.
+  await new Promise((done) => setTimeout(done, 0));
   return holds(el, block);
 }
