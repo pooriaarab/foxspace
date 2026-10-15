@@ -1,6 +1,6 @@
 // The E2E test: install the E2E build (dist-e2e/: the extension plus the
 // content script from e2e/extension/) in a real Firefox,
-// check that it runs in a page and stores a value, and write
+// check that it runs in a page and that the event page answers, and write
 // artifacts/e2e-<date>.json.
 // Usage: pnpm e2e [--headed]. Env: FIREFOX (the Firefox binary).
 import { launch, poll, serve, writeArtifact } from "create-foxkit/e2e";
@@ -16,7 +16,8 @@ try {
   const page = await fox.open(`${site.url}/index.html`);
   check("content script ran in the page", "content-script-ran", await poll(page, () => document.documentElement.dataset.fixture));
   const ext = await fox.openExtensionPage("popup.html");
-  check("background stored a value", "installed", await poll(ext, () => document.getElementById("value")?.textContent));
+  const reply = await ext.evaluate(() => browser.runtime.sendMessage({ type: "spaces:list" }));
+  check("the event page answers its own page", '{"ok":true,"value":[]}', JSON.stringify(reply));
 } catch (error) {
   record.error = error instanceof Error ? error.message : String(error);
 } finally {
