@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>ChatGPT</title><link rel="stylesheet" href="/style.css"></head>
 <body><main><h1>A redesign: no selector of the adapter matches</h1>
-<form class="composer" onsubmit="return false"><div contenteditable="plaintext-only" data-composer="main" class="cm-editor"></div>
+<form class="composer" onsubmit="return false"><div id="editor"></div>
 <button class="send" data-testid="composer-send" type="button">&#8593;</button></form><ol id="sent"></ol></main>
-<script type="module">import { chat } from "/editor.js"; chat({ composer: '[data-composer="main"]', send: '[data-testid="composer-send"]' });</script>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "plain", host: "#editor", attrs: { "data-composer": "main", class: "cm-editor" }, send: '[data-testid="composer-send"]' });</script>
 </body></html>
