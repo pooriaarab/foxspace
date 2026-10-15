@@ -78,6 +78,7 @@ the reason, and it never guesses where text should go.
 | A3 | The insert does not register with the site's editor (React, ProseMirror) | Text goes in with `execCommand("insertText")`, which fires `beforeinput` and `input`. foxspace reads the composer back; when the block is not there, it says so and offers Copy | E2E |
 | A4 | The page is not a supported site | The content script does not run there (manifest matches) | tests/sites.test.ts |
 | A5 | The page sends a message to the content script or the picker frame | The event page answers only its own pages and the content script's two messages; nothing in the page can list spaces | code review, E2E |
+| A6 | A hostile page restyles the `<foxspace-ui>` host or `<html>` (opacity, visibility, filter, clip, mask, blend, transform) to hide the picker over a decoy, so the user's clicks open it and press Insert unseen (clickjacking) | The content script checks the computed style of the host and `<html>` before it opens the picker, when focus moves into it, every 700 ms while it is open, and before it inserts. Hidden: the picker does not open, or closes, and the insert is refused with the reason | tests/content.test.ts |
 
 ## Release
 
