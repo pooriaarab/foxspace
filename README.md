@@ -150,7 +150,7 @@ The store is `$FOXSPACE_HOME/spaces.json`, by default `~/.foxspace/spaces.json`.
 | Tool | What it returns |
 |---|---|
 | `list_spaces` | The spaces you marked agent-readable: id, name, number of public items. No content. |
-| `get_space` | One agent-readable space, public items only, as text or Markdown. An agent cannot tick an `ask` item. |
+| `get_space` | One agent-readable space, public items only, as text or Markdown. An agent cannot tick an `ask` item. A space that is not agent-readable answers as not found. |
 
 ```json
 { "mcpServers": { "foxspace": { "command": "npx", "args": ["foxspace", "mcp"] } } }
