@@ -78,6 +78,12 @@ the reason, and it never guesses where text should go.
 | A4 | The page is not a supported site | The content script does not run there (manifest matches) | tests/sites.test.ts |
 | A5 | The page sends a message to the content script or the picker frame | The event page answers only its own pages and the content script's two messages; nothing in the page can list spaces | code review, E2E |
 
+## Release
+
+| # | Failure mode | Wanted behaviour | Test |
+|---|---|---|---|
+| P1 | A dev dependency that the release runs (vitest, web-ext, oxlint, esbuild) is bad, and uses the job's write token or OIDC token to push a tag or mint a provenance token | The workflow grants nothing by default. Each checkout has `persist-credentials: false`. Only the npm job has `id-token: write` and only the GitHub release job has `contents: write`; neither installs or runs a dependency. The npm job publishes the tarball that the read-only build job tested | tests/release.test.ts |
+
 ## Extension
 
 | # | Failure mode | Wanted behaviour | Test |
