@@ -2,17 +2,18 @@
   "default_locale": "en-US",
   "slug": "foxspace",
   "name": {
-    "en-US": "foxspace"
+    "en-US": "foxspace — your AI context on any chat site"
   },
   "summary": {
-    "en-US": "Task spaces of AI context you inject into any chat composer, sync and guard, under your control."
+    "en-US": "Keep the context for a task in a space, and add it to the message box on ChatGPT, Claude, Gemini and four more chat sites. Mark each item public, ask or private, and stop a send that holds a term you never share."
   },
   "description": {
-    "en-US": "Task spaces of AI context you inject into any chat composer, sync and guard, under your control.\n\n**Who it is for:** people who want to see foxspace work in their own browser before they build on the foxspace library.\n\n**What leaves your computer:** nothing. foxspace has no server, sends no data off this device, and has no analytics.\n\n**Permissions**\n\n- Storage: keep a value in your browser that the toolbar popup shows.\n\nThe source code is MIT licensed."
+    "en-US": "foxspace keeps task spaces of AI context in your browser, and brings them to the chat site you use. A space such as \"Trip to Japan\" or \"Work: Q4 planning\" holds instructions, memories, preference lines and short snippets.\n\n**Who it is for:** people who use more than one AI chat site and are tired of typing the same context into each one, and people who import their context with foxcache, foxpack or foxprefs.\n\n**What it does**\n\n- Spaces: build a space on the spaces page by pasting text, or by importing a foxcache, foxpack, foxprefs or foxspace export file. Each item is public, ask or private; an item with no level is \"ask\".\n- Add: on chatgpt.com, claude.ai, chat.mistral.ai, gemini.google.com, www.perplexity.ai, grok.com and chat.deepseek.com, a small foxspace button sits at the message box (or press Alt+Shift+K). Pick a space and tick the \"ask\" items you want. foxspace puts the text in the message box. It never sends the message: you read it first.\n- Private items never go into a page. The picker is a frame of the add-on, so the chat page cannot read your spaces.\n- Guard: when you send a message on those sites, foxspace checks the message text for the terms you marked \"never share\", also when they are hidden with lookalike letters or invisible characters. On a match it stops the send, names the term, and offers Edit or Send anyway.\n- Sync: the sync page sizes a space for a site's own custom instructions box, with a Copy button and a link to that settings page. You paste it yourself.\n- A short log in your browser lists which space went into which site, and when.\n\n**What leaves your computer:** only the text you choose to add to a message box, which you then send to that chat site yourself. foxspace has no server and no analytics.\n\n**Permissions**\n\n- Storage: keep your spaces in this browser.\n- Access to the seven chat sites above: show the button, add the text you pick, and read the message text at the moment you send it, to check it for your never-share terms. foxspace reads nothing else on these sites, and runs on no other site.\n\nThe source code is MIT licensed."
   },
   "categories": {
     "firefox": [
-      "other"
+      "social-communication",
+      "privacy-security"
     ]
   },
   "homepage": {
@@ -23,6 +24,6 @@
   },
   "version": {
     "license": "MIT",
-    "approval_notes": "The uploaded source.zip is the git tree of this release. To build: install Node 24 and pnpm (corepack enable), run `pnpm install --frozen-lockfile`, then `pnpm build:ext`. The output is dist-ext/. esbuild bundles extension/*.js; the other files are copied unmodified. To try it: click the toolbar button. The popup shows the value that the background script stores at install. No account is needed."
+    "approval_notes": "The uploaded source.zip is the git tree of this release. To build: install Node 24 and pnpm 11 (corepack enable), run `pnpm install --frozen-lockfile`, then `pnpm build:ext`. The output is dist-ext/. esbuild bundles extension/*.js with src/ and the foxtrail package; the other files are copied unmodified. To try it: open the add-on preferences (the spaces page), create a space, add an item, and add a never-share term. Then open chatgpt.com or claude.ai: press the foxspace button at the message box (or Alt+Shift+K), tick an item and press Insert. Type the never-share term and press Enter to see the guard. The add-on sends no data anywhere itself. No account is needed for the add-on; the chat sites need their own account."
   }
 }

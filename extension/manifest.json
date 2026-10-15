@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "foxspace",
-  "version": "0.0.0",
-  "description": "Task spaces of AI context you inject into any chat composer, sync and guard, under your control.",
+  "name": "foxspace — your AI context on any chat site",
+  "version": "0.1.0",
+  "description": "Task spaces of AI context that you add to any chat site, with a level per item and a guard for terms you never share.",
   "icons": { "48": "icons/icon-48.png", "96": "icons/icon-96.png", "128": "icons/icon-128.png" },
   "browser_specific_settings": {
     "gecko": {

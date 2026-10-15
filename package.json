@@ -1,7 +1,7 @@
 {
   "name": "foxspace",
-  "version": "0.0.0",
-  "description": "Task spaces of AI context you inject into any chat composer, sync and guard, under your control.",
+  "version": "0.1.0",
+  "description": "Task spaces of AI context that you add to any chat site, with a level per item and a guard for terms you never share.",
   "type": "module",
   "license": "MIT",
   "author": "Pooria Arab",
@@ -55,5 +55,22 @@
     "@modelcontextprotocol/sdk": "^1.32.1",
     "foxtrail": "0.1.4",
     "zod": "^4.6.7"
-  }
+  },
+  "keywords": [
+    "firefox",
+    "webextension",
+    "ai-context",
+    "chatgpt",
+    "claude",
+    "gemini",
+    "prompt",
+    "personal-context",
+    "privacy",
+    "dlp",
+    "mcp",
+    "mcp-server",
+    "scent",
+    "foxcache",
+    "typescript"
+  ]
 }
