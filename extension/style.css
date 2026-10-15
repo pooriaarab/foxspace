@@ -150,3 +150,9 @@ pre.empty { color: var(--muted); font-family: inherit; }
 .count-line { font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
 a.button-link { display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 13.5px; font-weight: 550; }
 a.button-link:hover { background: var(--hover); }
+.trail { margin-top: 8px; font-size: 13.5px; }
+.trail li { display: flex; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); }
+.trail li:first-child { border-top: 0; }
+.trail b { font-weight: 600; }
+.trail .when { margin-left: auto; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.note.bad { color: var(--bad); }
