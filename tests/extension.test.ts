@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 // G10 in docs/failure-modes.md, on the sync page: text with a never-share term is never offered for Copy.
+// A6: the popup says so when the page hides the picker.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -50,5 +51,21 @@ describe("the sync page", () => {
       true,
       'This text holds a never-share term: "Zephyrcorp". Untick that item, or make it private.',
     ]);
+  });
+});
+
+describe("the popup", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllGlobals();
+  });
+
+  it("A6 says so when the page hides the picker", async () => {
+    const { browser, listeners } = await loadBackground();
+    const error = "This page hides the foxspace picker, so foxspace does not open it or insert from it.";
+    browser.tabs.query = async () => [{ id: 7, url: "https://chatgpt.com/" }] as never;
+    browser.tabs.sendMessage = async () => ({ ok: false, error });
+    const [onMessage] = listeners["runtime.onMessage"]!;
+    expect(await onMessage!({ type: "popup:open-picker" } as never, ownPage("popup.html") as never)).toEqual({ ok: false, code: "bad-request", error });
   });
 });

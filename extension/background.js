@@ -118,9 +118,12 @@ export const pageHandlers = {
 async function openPicker() {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   // Without a content script in the tab, sendMessage fails: not a chat site.
-  return toTop(tab.id, { type: "foxspace:open-picker" }).catch(() => {
+  const result = await toTop(tab.id, { type: "foxspace:open-picker" }).catch(() => {
     throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
   });
+  // A6: the page hides the picker.
+  if (!result.ok) throw new FoxspaceError("bad-request", result.error);
+  return result;
 }
 browser.commands.onCommand.addListener((name) => {
   if (name === "open-picker") openPicker().catch(() => {});
