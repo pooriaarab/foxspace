@@ -156,3 +156,11 @@ a.button-link:hover { background: var(--hover); }
 .trail b { font-weight: 600; }
 .trail .when { margin-left: auto; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .note.bad { color: var(--bad); }
+
+/* Popup */
+body.popup { width: 340px; padding: 14px 16px 16px; }
+ul.popup-list { margin-top: 12px; padding: 6px 14px; }
+.popup-list li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; font-size: 13.5px; border-top: 1px solid var(--line); }
+.popup-list li:first-child { border-top: 0; }
+.popup-list .count { color: var(--muted); font-size: 12.5px; }
+.card.warn { margin-top: 12px; border-color: oklch(from var(--accent) l c h / 0.5); font-size: 13px; }
