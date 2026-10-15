@@ -60,19 +60,63 @@ function showSpace() {
   return preview();
 }
 
-async function start() {
+// Load the spaces, keep the chosen one if it is still there. With no space,
+// the picker asks for a name first; with a space, the add form is open.
+async function load(pick) {
   state = await ask("picker:state");
   $("title").textContent = `Add a space to ${state.label}`;
-  if (!state.spaces.length) {
-    $("space").hidden = $("insert").disabled = $("copy").disabled = true;
-    $("preview").textContent = "You have no spaces yet. Make one on the foxspace spaces page.";
+  const none = state.spaces.length === 0;
+  $("space").hidden = $("add").hidden = none;
+  $("make").hidden = !none;
+  if (none) {
+    $("items").replaceChildren();
+    $("insert").disabled = $("copy").disabled = true;
+    $("preview").textContent = "You have no spaces yet. Name one to start.";
+    $("make-name").focus();
     return;
   }
   $("space").replaceChildren(...state.spaces.map((s) => el("option", { value: s.id, textContent: s.name })));
-  $("space").addEventListener("change", () => showSpace().catch(failed));
+  if (pick && state.spaces.some((s) => s.id === pick)) $("space").value = pick;
   await showSpace();
-  $("space").focus();
 }
+
+async function start() {
+  $("space").addEventListener("change", () => showSpace().catch(failed));
+  await load();
+  if (!$("space").hidden) $("space").focus();
+}
+
+$("new-space").addEventListener("click", () => {
+  $("make").hidden = !$("make").hidden;
+  if (!$("make").hidden) $("make-name").focus();
+});
+$("manage").addEventListener("click", () => browser.tabs.create({ url: browser.runtime.getURL("spaces.html") }).catch(failed));
+$("make").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const made = await ask("spaces:create", { name: $("make-name").value.trim() });
+    $("make-name").value = "";
+    await load(made.id);
+    status(`Made "${made.name}". Add an item below.`);
+    $("add-text").focus();
+  } catch (error) {
+    failed(error);
+  }
+});
+$("add").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const id = space().id;
+    const level = $("add-level").value;
+    await ask("spaces:add", { id, items: [{ kind: $("add-kind").value, text: $("add-text").value.trim(), sensitivity: level }] });
+    $("add-text").value = "";
+    await load(id);
+    status(level === "private" ? "Added. It is private, so it stays out of every message." : "Added.");
+    $("add-text").focus();
+  } catch (error) {
+    failed(error);
+  }
+});
 
 $("insert").addEventListener("click", async () => {
   try {
