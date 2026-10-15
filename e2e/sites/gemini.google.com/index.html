@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Gemini</title><link rel="stylesheet" href="/style.css"></head>
+<body class="gemini"><main><h1>Hello, again</h1>
+<div class="composer"><rich-textarea id="editor"></rich-textarea>
+<button class="send send-button" aria-label="Send message" type="button">&#8593;</button></div><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "quill", host: "#editor", send: 'button[aria-label="Send message"]' });</script>
+</body></html>
