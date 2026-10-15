@@ -1,20 +1,16 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>foxspace</title>
-    <link rel="stylesheet" href="popup.css" />
-  </head>
-  <body>
-    <header>
-      <img src="icons/icon-48.png" alt="" width="22" height="22" />
-      <h1>foxspace</h1>
-    </header>
-    <p class="hint">Task spaces of AI context you inject into any chat composer, sync and guard, under your control.</p>
-    <!-- Show foxspace working here. The E2E test reads #value. -->
-    <section class="card">
-      <p>Status: <output id="value"></output></p>
-    </section>
-    <script src="popup.js"></script>
-  </body>
+<head><meta charset="utf-8"><title>foxspace</title><link rel="stylesheet" href="style.css"></head>
+<body class="popup">
+  <header><img class="mark" src="icons/icon-48.png" alt="" width="22" height="22"><h1>foxspace</h1></header>
+  <p class="note">Your spaces stay in this browser. On a chat site, press the foxspace button at the message box, or Alt+Shift+K.</p>
+  <div id="access" class="card warn" hidden>
+    <p>foxspace has no access to the chat sites yet, so it cannot add a space or guard a send there.</p>
+    <div class="bar"><button id="grant" class="primary" type="button">Allow on chat sites</button></div>
+  </div>
+  <ul id="spaces" class="plain card popup-list"></ul>
+  <div class="bar"><button id="picker" class="primary" type="button">Add a space here</button><a class="button-link" href="spaces.html" target="_blank">Spaces</a><a class="button-link" href="sync.html" target="_blank">Sync</a></div>
+  <p id="status" class="status" role="status"></p>
+  <script src="popup.js"></script>
+</body>
 </html>

@@ -101,6 +101,8 @@ export const pageHandlers = {
     if (result?.ok && result.landed) await record({ kind: "space.inject", data: { space: space.name, site: site.host, items: render.included.length } });
     return { ...result, items: render.included.length };
   },
+  // The popup and the shortcut open the picker on the active tab.
+  "popup:open-picker": () => openPicker(),
   "picker:close": (_, sender) => toTop(sender.tab.id, { type: "foxspace:close-picker" }),
   "guard:matches": async ({ token }) => (await held.get(token))[token] ?? null,
   "guard:decide": async ({ token, choice }, sender) => {
@@ -109,6 +111,17 @@ export const pageHandlers = {
     return toTop(sender.tab.id, { type: "foxspace:guard-decision", token, choice });
   },
 };
+
+async function openPicker() {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  // Without a content script in the tab, sendMessage fails: not a chat site.
+  return toTop(tab.id, { type: "foxspace:open-picker" }).catch(() => {
+    throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
+  });
+}
+browser.commands.onCommand.addListener((name) => {
+  if (name === "open-picker") openPicker().catch(() => {});
+});
 
 /** The messages that the content script sends. It gets a yes or a token, never a term (G8). */
 export const contentHandlers = {

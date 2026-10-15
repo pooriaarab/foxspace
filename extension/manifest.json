@@ -35,6 +35,12 @@
       "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"]
     }
   ],
+  "commands": {
+    "open-picker": {
+      "suggested_key": { "default": "Alt+Shift+K" },
+      "description": "Add a space to the message box"
+    }
+  },
   "options_ui": {
     "page": "spaces.html",
     "open_in_tab": true
