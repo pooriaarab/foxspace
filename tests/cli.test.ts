@@ -1,7 +1,7 @@
-// C1-C3 in docs/failure-modes.md: the foxspace command.
-import { mkdtemp, truncate, writeFile } from "node:fs/promises";
+// C1-C4 in docs/failure-modes.md: the foxspace command.
+import { chmod, mkdtemp, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../src/cli.js";
@@ -88,6 +88,20 @@ describe("foxspace command", () => {
     await writeFile(huge, "");
     await truncate(huge, 3 * 1024 ** 3); // sparse: no disk used
     expect(await run("import", huge)).toEqual({ code: 1, out: "", err: "foxspace: The import is larger than 1024 KB.\n" });
+  });
+
+  it("C4 prints one line, not a stack, when the store cannot be used", async () => {
+    const { env, run } = await setup();
+    const file = join(env.FOXSPACE_HOME, "file");
+    await writeFile(file, "");
+    env.FOXSPACE_HOME = file;
+    expect(await run("list")).toEqual({ code: 1, out: "", err: `foxspace: ENOTDIR: not a directory, open '${file}/spaces.json'\n` });
+    expect(await run("import", ARCHIVE)).toEqual({ code: 1, out: "", err: `foxspace: EEXIST: file already exists, mkdir '${file}'\n` });
+    env.FOXSPACE_HOME = dirname(file);
+    await chmod(env.FOXSPACE_HOME, 0o500);
+    const r = await run("import", ARCHIVE);
+    await chmod(env.FOXSPACE_HOME, 0o700);
+    expect(r).toEqual({ code: 1, out: "", err: `foxspace: EACCES: permission denied, open '${env.FOXSPACE_HOME}/spaces.json.lock'\n` });
   });
 
   it("I10 adds nothing when an import breaks a space limit", async () => {
