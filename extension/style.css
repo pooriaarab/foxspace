@@ -164,3 +164,7 @@ ul.popup-list { margin-top: 12px; padding: 6px 14px; }
 .popup-list li:first-child { border-top: 0; }
 .popup-list .count { color: var(--muted); font-size: 12.5px; }
 .card.warn { margin-top: 12px; border-color: oklch(from var(--accent) l c h / 0.5); font-size: 13px; }
+body.frame .bar select { flex: 1; min-width: 0; }
+body.frame #make input { flex: 1; min-width: 0; }
+body.frame .quick { margin-top: 10px; }
+body.frame .quick textarea { width: 100%; box-sizing: border-box; }
