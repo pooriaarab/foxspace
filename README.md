@@ -139,9 +139,10 @@ foxspace import <file> [--into <space>]         foxspace guard <text...>   (- re
 foxspace mcp
 ```
 
-The store is `$FOXSPACE_HOME/spaces.json`, by default `~/.foxspace/spaces.json`. The directory is
-`0700` and the file `0600`. `show` masks private text. Exit codes: 0 done, 1 a foxspace error,
-2 bad usage, 3 the guard found a term.
+The store is `$FOXSPACE_HOME/spaces.json`, by default `~/.foxspace/spaces.json`. A directory that
+foxspace makes is `0700`; it never changes the mode of one that exists. The file is `0600`.
+`show` masks private text. Exit codes: 0 done, 1 a foxspace error, 2 bad usage, 3 the guard found
+a term.
 
 ### MCP server
 
