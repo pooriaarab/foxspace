@@ -59,7 +59,7 @@ the reason, and it never guesses where text should go.
 | G1 | The term is hidden with zero-width characters or a soft hyphen (`pass​port`) | Matches: both sides are NFKC-normalized and stripped of format characters | tests/guard.test.ts, E2E |
 | G2 | The term is written with Unicode lookalikes (Cyrillic `а`, fullwidth `Ｐ`, math letters) | Matches: NFKC plus a lookalike map folds them to Latin | tests/guard.test.ts |
 | G3 | Case or spacing changes (`ACME  Corp`, `acme\ncorp`) | Matches | tests/guard.test.ts |
-| G4 | A number term is written with other separators (`604-555-0199` for `604 555 0199`), or a code with spaces put in it (`AB 1234 56`) | Matches: a term of 6 or more digits matches by its digits; a one-word term of 6 or more characters also matches with spaces in it | tests/guard.test.ts |
+| G4 | A number term is written with other separators (`604-555-0199` for `604 555 0199`), or a code with spaces put in it (`AB 1234 56`) | Matches: a term of 6 or more digits matches by its digits; any term also matches with spaces in it (G12) | tests/guard.test.ts |
 | G5 | A short term matches inside a longer word (`Ann` in `banner`) | No match: a term matches whole words only | tests/guard.test.ts |
 | G6 | The outgoing text is too long to check | It counts as a match ("too long to check"), so the send stops | tests/guard.test.ts |
 | G7 | A term is empty or only spaces after normalization | It is refused when it is saved; it never matches everything | tests/guard.test.ts |
@@ -67,6 +67,7 @@ the reason, and it never guesses where text should go.
 | G9 | The guard reads more than the composer | The content script reads the composer text at submit time only | code review, E2E |
 | G10 | A public or ticked item holds a never-share term, so Insert would put the term in the page before any send | The picker names the term in its frame and turns off Insert and Copy; the event page refuses such an insert | E2E |
 | G11 | The user edits the message while the guard dialog is open, or while the check runs, then sends | The send goes out only if the text now is the text that was checked; else it is checked again | E2E |
+| G12 | A term is written with its separators taken out (`ACME42` for `ACME-42`, `ProjectX`), a short term with separators put in (`a.c.m.e`), lowercase Cyrillic lookalikes (`toкen`), or non-ASCII digits (`١٢٣٤٥٦`) | Matches: every term also matches with its separators taken out and with one space or separator between any two of its characters; lowercase Cyrillic `в к м н т` fold like their capitals; every Unicode decimal digit folds to ASCII | tests/guard.test.ts |
 
 ## Sites and the composer
 
