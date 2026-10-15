@@ -100,6 +100,7 @@ the reason, and it never guesses where text should go.
 | N1 | `$FOXSPACE_HOME/spaces.json` is not JSON | `bad-store`; the file is not changed | tests/node.test.ts |
 | N2 | A crash during a write | The write goes to a temp file and renames, so no half file; a failed rename removes the temp file | tests/node.test.ts |
 | N4 | `spaces.json` is huge | `bad-store` from the file size, before the file is read | tests/node.test.ts |
+| N5 | `FOXSPACE_HOME` exists with a wider mode (0755), and the docs say it is 0700 | A directory that foxspace makes is 0700. foxspace never changes the mode of one that exists, because it may be shared (such as `~`); the README says so, and the file is always 0600 | tests/node.test.ts |
 | N3 | Two foxspace processes change the store at once, so one change is lost | A change holds `spaces.json.lock` (an exclusive create) from its read to its write. Another process waits up to 10 s, then fails with `bad-store` that names the lock. A lock left by a process that is gone is taken over | tests/node.test.ts |
 | C1 | Bad usage (unknown command, missing argument, unknown flag) | Exit 2 with the usage text | tests/cli.test.ts |
 | C2 | `show` prints private items | Private text is masked; only its length shows | tests/cli.test.ts |

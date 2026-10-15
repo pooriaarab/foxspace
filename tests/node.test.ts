@@ -1,6 +1,6 @@
-// N1-N4 in docs/failure-modes.md: the file store at FOXSPACE_HOME.
+// N1-N5 in docs/failure-modes.md: the file store at FOXSPACE_HOME.
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, stat, truncate, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, stat, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -22,6 +22,15 @@ describe("file store", () => {
     expect((await stat(spacesPath(env))).mode & 0o777).toBe(0o600);
     expect(JSON.parse(await readFile(spacesPath(env), "utf8")).spaces[0].name).toBe("Trip");
     expect((await openSpaces({ env }).list()).map((s) => s.name)).toEqual(["Trip"]);
+  });
+
+  it("N5 leaves the mode of a directory that exists, and makes the file 0600", async () => {
+    const env = { FOXSPACE_HOME: await home() };
+    await mkdir(env.FOXSPACE_HOME, { recursive: true, mode: 0o755 });
+    await chmod(env.FOXSPACE_HOME, 0o755);
+    await openSpaces({ env }).create("Trip");
+    expect((await stat(env.FOXSPACE_HOME)).mode & 0o777).toBe(0o755);
+    expect((await stat(spacesPath(env))).mode & 0o777).toBe(0o600);
   });
 
   it("N1 fails on a file that is not JSON and leaves it as it is", async () => {
