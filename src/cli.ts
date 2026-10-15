@@ -74,12 +74,7 @@ async function importFile(spaces: Spaces, file: string, into: string | undefined
     return `Added ${added.length} space${added.length === 1 ? "" : "s"}: ${added.map((s) => s.name).join(", ") || "none"}.\n`;
   }
   const name = into ?? `Imported from ${result.format.split("/")[0]}`;
-  const space = await spaces.get(name).catch(async (error: unknown) => {
-    if (error instanceof FoxspaceError && error.code === "not-found") return spaces.create(name);
-    throw error;
-  });
-  const { added, skipped } = await spaces.addItems(space.id, result.items);
-  if (result.neverShare.length) await spaces.addNeverShare(space.id, result.neverShare);
+  const { space, added, skipped } = await spaces.importInto(name, result.items, result.neverShare, { create: true });
   const notes = [`Added ${added.length} item${added.length === 1 ? "" : "s"} to "${space.name}"${skipped ? ` (${skipped} already there)` : ""}.`];
   if (result.neverShare.length) notes.push(`Added ${result.neverShare.length} never-share term${result.neverShare.length === 1 ? "" : "s"}.`);
   if (result.ignored.length) notes.push(`Not read: ${result.ignored.join(", ")}.`);
