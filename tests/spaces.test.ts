@@ -63,7 +63,7 @@ describe("spaces", () => {
 
   it("S6 fails on a corrupt store and never writes over it", async () => {
     let writes = 0;
-    const store: SpaceStore = { read: async () => ({ format: FORMAT, spaces: [{ id: "x" }], updatedAt: "2026-01-01" }), write: async () => void writes++ };
+    const store: SpaceStore = { read: async () => ({ format: FORMAT, spaces: [{ id: "x" }], updatedAt: "2026-01-01" }), write: async () => void writes++, lock: (fn) => fn() };
     const spaces = createSpaces({ store });
     expect(await errorOf(spaces.list())).toBe("bad-store: A space name must be text.");
     expect(await errorOf(spaces.create("New"))).toMatch(/^bad-store: /);
@@ -88,7 +88,7 @@ describe("spaces", () => {
   it("S10 rejects when the write fails, and keeps the old state", async () => {
     const inner = memoryStore();
     let fail = false;
-    const store: SpaceStore = { read: inner.read, write: async (s) => (fail ? Promise.reject(new Error("disk full")) : inner.write(s)) };
+    const store: SpaceStore = { read: inner.read, write: async (s) => (fail ? Promise.reject(new Error("disk full")) : inner.write(s)), lock: inner.lock };
     const spaces = createSpaces({ store });
     await spaces.create("Trip");
     fail = true;

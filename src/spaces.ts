@@ -1,6 +1,7 @@
 // The spaces object: read and change the user's spaces. Calls run one at a
-// time, every change is checked as a whole before it is written, and every
-// value that leaves is a copy.
+// time, a change holds the store lock from its read to its write, every
+// change is checked as a whole before it is written, and every value that
+// leaves is a copy.
 import { FoxspaceError } from "./errors.js";
 import { FORMAT, LIMITS, checkItem, checkSensitivity, checkState, checkTerm, newId } from "./schema.js";
 import type { ItemKind, Sensitivity, Space, SpaceItem, SpacesState } from "./schema.js";
@@ -86,15 +87,17 @@ export function createSpaces(options: SpacesOptions): Spaces {
 
   /** Load, change a copy, check the whole result, write it. fn returns what the call gives back. */
   const change = <T>(fn: (state: SpacesState, stamp: string) => T): Promise<T> =>
-    serial(async () => {
-      const next = structuredClone(await load());
-      const stamp = new Date(now()).toISOString();
-      const result = fn(next, stamp);
-      next.updatedAt = stamp;
-      const checked = checkState(next, "bad-space");
-      await store.write(checked);
-      return structuredClone(result);
-    });
+    serial(() =>
+      store.lock(async () => {
+        const next = structuredClone(await load());
+        const stamp = new Date(now()).toISOString();
+        const result = fn(next, stamp);
+        next.updatedAt = stamp;
+        const checked = checkState(next, "bad-space");
+        await store.write(checked);
+        return structuredClone(result);
+      }),
+    );
 
   const spaces: Spaces = {
     list: () => serial(async () => (await load()).spaces),
