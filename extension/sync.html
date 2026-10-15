@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>foxspace sync</title><link rel="stylesheet" href="style.css"></head>
+<body class="page">
+  <header><img class="mark" src="icons/icon-48.png" alt="" width="22" height="22"><h1>foxspace</h1>
+    <nav><a href="spaces.html">Spaces</a><a href="sync.html" aria-current="page">Sync</a></nav></header>
+  <p class="note">Put a space into a chat site's own settings, so every chat there starts with it. foxspace sizes the text for the box; you copy it and paste it on the site. foxspace does not write into the site's settings itself.</p>
+  <p id="status" class="status" role="status"></p>
+  <div class="layout">
+    <aside class="card stack">
+      <div><label class="field-label" for="space">Space</label><select id="space"></select></div>
+      <div><label class="field-label" for="provider">Site</label><select id="provider"></select></div>
+      <div><label class="field-label" for="box">Box</label><select id="box"></select></div>
+      <div><p class="field-label">"Ask" items to include</p><ul id="ticks" class="plain picks"></ul></div>
+    </aside>
+    <section class="card">
+      <h2 id="target">Text</h2>
+      <p id="where" class="note"></p>
+      <pre id="text" aria-label="The text to paste"></pre>
+      <p id="count" class="count-line"></p>
+      <p id="limit" class="note"></p>
+      <div class="bar"><button id="copy" class="primary" type="button">Copy</button><a id="open" class="button-link" target="_blank" rel="noopener noreferrer"></a></div>
+    </section>
+  </div>
+  <script src="sync.js"></script>
+</body>
+</html>
