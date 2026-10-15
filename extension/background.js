@@ -41,7 +41,13 @@ const held = browser.storage.session;
 const tokenOf = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const toTop = (tabId, message) => browser.tabs.sendMessage(tabId, message, { frameId: 0 });
 
-const termsOf = (all) => all.flatMap((s) => s.neverShare.map((term) => ({ term, from: s.name })));
+// A short private item guards itself: typing it into a chat stops the send too.
+const PRIVATE_TERM_CHARS = 80;
+const termsOf = (all) =>
+  all.flatMap((s) => [
+    ...s.neverShare.map((term) => ({ term, from: s.name })),
+    ...s.items.filter((i) => i.sensitivity === "private" && i.text.length <= PRIVATE_TERM_CHARS).map((i) => ({ term: i.text.replace(/[.\s]+$/, ""), from: `${s.name}, private item` })),
+  ]);
 
 /** The block for a pick, and the never-share terms in it: an item can hold one (G10). */
 async function block(id, ticked) {

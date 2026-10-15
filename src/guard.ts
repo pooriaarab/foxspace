@@ -79,6 +79,16 @@ function pattern(term: string): RegExp | undefined {
   return new RegExp(`(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])`, "u");
 }
 
+/** Secrets the guard stops with no term set: API keys and private keys, matched on the raw text. */
+const SECRETS: { re: RegExp; term: string }[] = [
+  { re: /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{16,}/, term: "an API key (sk-...)" },
+  { re: /\bAKIA[0-9A-Z]{16}\b/, term: "an AWS access key" },
+  { re: /\bgh[pousr]_[A-Za-z0-9]{30,}/, term: "a GitHub token" },
+  { re: /\bxox[abposr]-[A-Za-z0-9-]{10,}/, term: "a Slack token" },
+  { re: /\bAIza[0-9A-Za-z_-]{35}\b/, term: "a Google API key" },
+  { re: /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/, term: "a private key" },
+];
+
 /** A guard for a list of terms. Call it with each outgoing message. */
 export function createGuard(terms: GuardTerm[]): (text: string) => GuardResult {
   const compiled = terms.flatMap((t) => {
@@ -89,6 +99,7 @@ export function createGuard(terms: GuardTerm[]): (text: string) => GuardResult {
     if (text.length > MAX_GUARD_CHARS) return { ok: false, matches: [], tooLong: true };
     const norm = normalizeForGuard(text);
     const matches = compiled.filter(({ re }) => re.test(norm)).map(({ t }) => ({ term: t.term, from: t.from }));
+    for (const secret of SECRETS) if (secret.re.test(text)) matches.push({ term: secret.term, from: "foxspace" });
     return { ok: matches.length === 0, matches, tooLong: false };
   };
 }
