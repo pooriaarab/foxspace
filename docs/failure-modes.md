@@ -81,10 +81,10 @@ the reason, and it never guesses where text should go.
 
 | # | Failure mode | Wanted behaviour | Test |
 |---|---|---|---|
-| X1 | The event page unloads between a pick and the insert | All state is in `storage.local`; the pick names the space and the ticks | E2E |
+| X1 | The event page unloads between a pick and the insert | All state is in `storage.local` and `storage.session`; the insert message names the space and the ticks | Code review; the E2E does not force an unload |
 | X2 | "Send anyway" loops into the guard again | A replayed send skips the guard once | E2E |
-| X3 | The trail fails to write | The insert still happens; the spaces page shows that the trail failed | E2E |
-| X4 | The sync text is longer than the provider box | The sync page shows the count and the limit, and what was left out | E2E |
+| X3 | The trail fails to write | The insert still happens; the spaces page shows that the trail failed | Not tested: the E2E cannot make IndexedDB fail. Code review of `record` in extension/background.js |
+| X4 | The sync text is longer than the provider box | The sync page shows the count and the limit, and what was left out | tests/render.test.ts (R3), E2E (count, limit and left-out line) |
 
 ## Node store, CLI and MCP
 

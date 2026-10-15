@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Claude</title><link rel="stylesheet" href="/style.css"></head>
+<body class="claude"><main><h1>How can I help you today?</h1>
+<fieldset class="composer" style="border:1px solid #4a4a46"><div contenteditable="true" role="textbox" class="tiptap ProseMirror" translate="no"><p data-placeholder="How can I help you today?"><br></p></div>
+<button class="send" aria-label="Send message" type="button">&#8593;</button></fieldset><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ composer: "div.ProseMirror", send: 'button[aria-label="Send message"]' });</script>
+</body></html>
