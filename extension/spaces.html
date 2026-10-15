@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>foxspace spaces</title><link rel="stylesheet" href="style.css"></head>
+<body class="page">
+  <header><img class="mark" src="icons/icon-48.png" alt="" width="22" height="22"><h1>foxspace</h1>
+    <nav><a href="spaces.html" aria-current="page">Spaces</a><a href="sync.html">Sync</a></nav></header>
+  <p class="note">A space is the context for one kind of task. On a supported chat site, press the foxspace button next to the message box, or Alt+Shift+K, to add a space to your message. You see it before you send.</p>
+  <p class="legend-key"><span><b class="public">Public</b>: goes in when you pick the space</span><span><b class="ask">Ask</b>: only when you tick it in the picker</span><span><b>Private</b>: never leaves this browser</span></p>
+  <div class="layout">
+    <aside class="card">
+      <h2>Spaces</h2>
+      <ul id="list" class="plain"></ul>
+      <form id="new" class="bar"><input id="new-name" placeholder="New space name" maxlength="80" aria-label="New space name" required><button class="primary">Create</button></form>
+    </aside>
+    <section id="editor" class="stack" hidden>
+      <div class="card">
+        <div class="name-row"><input id="name" maxlength="80" aria-label="Space name"><button id="delete" class="danger small" type="button">Delete</button></div>
+        <label class="check"><input id="agent" type="checkbox"> Agents may read the public items of this space (foxspace MCP server)</label>
+      </div>
+      <div class="card">
+        <h2>Items</h2>
+        <ul id="items" class="plain"></ul>
+        <form id="add" class="add">
+          <select id="add-kind" aria-label="Kind"><option value="instructions">Instructions</option><option value="preference">Preference</option><option value="memory" selected>Memory</option><option value="snippet">Snippet</option></select>
+          <select id="add-sens" class="sens" data-level="ask" aria-label="Who can read it"><option value="public">public</option><option value="ask" selected>ask</option><option value="private">private</option></select>
+          <span></span>
+          <textarea id="add-text" maxlength="4000" placeholder="Paste or type. Each paragraph becomes one item." aria-label="Item text" required></textarea>
+          <div class="bar"><button class="primary">Add</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Never share</h2>
+        <p class="note">foxspace stops a message that holds one of these terms on any supported chat site, and tells you which. One term per line, for example a passport or phone number.</p>
+        <textarea id="terms" rows="3" aria-label="Never-share terms" spellcheck="false"></textarea>
+        <div class="bar"><button id="save-terms" type="button">Save terms</button></div>
+      </div>
+    </section>
+  </div>
+  <p id="status" class="status" role="status"></p>
+  <script src="spaces.js"></script>
+</body>
+</html>
