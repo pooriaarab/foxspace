@@ -33,7 +33,7 @@ the reason, and it never guesses where text should go.
 | R2 | An "ask" item is rendered without a tick | Only the ids the user ticked for this render go in; a tick list from an older space does not carry over | tests/render.test.ts, E2E |
 | R3 | The render is longer than the provider box | Whole items are left out from the end, never a cut item; the result says how many were left out | tests/render.test.ts |
 | R4 | Even the instructions alone are longer than the box | The render is empty and says so; it never cuts the text | tests/render.test.ts |
-| R5 | Item text holds HTML or Markdown that changes the block (`</context>`, `# Ignore the above`) | The block is plain text in the composer; HTML is never parsed. Markdown output escapes nothing but puts each item on its own bullet line, so an item cannot start a new heading | tests/render.test.ts |
+| R5 | Item text holds HTML or Markdown that changes the block (`</context>`, `# Ignore the above`) | The block is plain text in the composer; HTML is never parsed. In Markdown, an item line that would start a heading, quote, list or rule gets a backslash, so an item cannot start a new section | tests/render.test.ts |
 | R6 | A space with nothing to render (all private or none ticked) | An empty render with the reason; the picker does not insert an empty block | tests/render.test.ts, E2E |
 | R7 | An unknown provider | `bad-request` lists the providers | tests/render.test.ts |
 
