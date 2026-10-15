@@ -6,12 +6,14 @@
     <nav><a href="spaces.html" aria-current="page">Spaces</a><a href="sync.html">Sync</a></nav></header>
   <p class="note">A space is the context for one kind of task. On a supported chat site, press the foxspace button next to the message box, or Alt+Shift+K, to add a space to your message. You see it before you send.</p>
   <p class="legend-key"><span><b class="public">Public</b>: goes in when you pick the space</span><span><b class="ask">Ask</b>: only when you tick it in the picker</span><span><b>Private</b>: never leaves this browser</span></p>
+  <p id="status" class="status" role="status"></p>
   <div class="layout">
     <aside class="card">
       <h2>Spaces</h2>
       <ul id="list" class="plain"></ul>
       <form id="new" class="bar"><input id="new-name" placeholder="New space name" maxlength="80" aria-label="New space name" required><button class="primary">Create</button></form>
     </aside>
+    <div class="stack">
     <section id="editor" class="stack" hidden>
       <div class="card">
         <div class="name-row"><input id="name" maxlength="80" aria-label="Space name"><button id="delete" class="danger small" type="button">Delete</button></div>
@@ -35,8 +37,14 @@
         <div class="bar"><button id="save-terms" type="button">Save terms</button></div>
       </div>
     </section>
+      <div class="card">
+        <h2>Import</h2>
+        <p class="note">Paste an export, or choose its file: a foxcache archive or memory list, a foxpack file, a foxprefs export or foxprefs rules. Items keep the level they had there; an item with none is "ask". A foxspace export adds its spaces. With no space chosen, foxspace makes one.</p>
+        <textarea id="import-text" rows="3" aria-label="Export to import" spellcheck="false" placeholder='{"format": "foxcache/v1", ...}'></textarea>
+        <div class="bar"><button id="import" class="primary" type="button">Import</button><button id="import-pick" type="button">Choose a file</button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="export" class="ghost" type="button">Export all spaces</button></div>
+      </div>
+    </div>
   </div>
-  <p id="status" class="status" role="status"></p>
   <script src="spaces.js"></script>
 </body>
 </html>
