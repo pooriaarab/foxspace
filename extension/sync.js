@@ -68,7 +68,9 @@ async function update() {
   render = next;
   $("text").textContent = render.text || render.empty;
   $("text").classList.toggle("empty", !render.text);
-  $("copy").disabled = !render.text;
+  // G10: text with a never-share term is never offered for Copy.
+  $("copy").disabled = !render.text || render.stops.length > 0;
+  status(render.stops.length ? `This text holds a never-share term: ${render.stops.map((m) => `"${m.term}"`).join(", ")}. Untick that item, or make it private.` : "", render.stops.length > 0);
   const left = [render.left.private && `${render.left.private} private`, render.left.unticked && `${render.left.unticked} "ask" not ticked`, render.left.tooLong && `${render.left.tooLong} too long for the box`].filter(Boolean);
   $("count").textContent = `${render.text.length.toLocaleString("en")} / ${b.limit.toLocaleString("en")} characters${left.length ? `. Left out: ${left.join(", ")}.` : "."}`;
   $("limit").textContent = `${b.limitIs === "documented" ? "Limit from the site" : b.limitIs === "reported" ? "Limit from reports" : "No limit documented"}: ${b.note}`;
