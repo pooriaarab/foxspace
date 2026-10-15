@@ -4,11 +4,11 @@
 <body class="page">
   <header><img class="mark" src="icons/icon-48.png" alt="" width="22" height="22"><h1>foxspace</h1>
     <nav><a href="spaces.html" aria-current="page">Spaces</a><a href="sync.html">Sync</a></nav></header>
-  <p class="note">A space is the context for one kind of task. On a supported chat site, press the foxspace button next to the message box, or Alt+Shift+K (Control+Shift+K on a Mac), to add a space to your message. You see it before you send.</p>
-  <p class="legend-key"><span><b class="public">Public</b>: goes in when you pick the space</span><span><b class="ask">Ask</b>: only when you tick it in the picker</span><span><b>Private</b>: never leaves this browser</span></p>
+  <p class="note">A space holds the context for one kind of task. On a chat site, press the foxspace button by the message box, or Alt+Shift+K (Control+Shift+K on a Mac). You see the text before you send.</p>
+  <p class="legend-key"><span><b class="public">Public</b>: always goes in</span><span><b class="ask">Ask</b>: only when you tick it</span><span><b>Private</b>: never leaves this browser</span></p>
   <p id="status" class="status" role="status"></p>
   <div class="layout">
-    <aside class="card">
+    <aside>
       <h2>Spaces</h2>
       <ul id="list" class="plain"></ul>
       <form id="new" class="bar"><input id="new-name" placeholder="New space name" maxlength="80" aria-label="New space name" required><button class="primary">Create</button></form>
@@ -17,7 +17,7 @@
     <section id="editor" class="stack" hidden>
       <div class="card">
         <div class="name-row"><input id="name" maxlength="80" aria-label="Space name"><button id="delete" class="danger small" type="button">Delete</button></div>
-        <label class="check"><input id="agent" type="checkbox"> Agents may read the public items of this space (foxspace MCP server)</label>
+        <label class="check"><input id="agent" type="checkbox"> Let agents read the public items (foxspace MCP server)</label>
       </div>
       <div class="card">
         <h2>Items</h2>
@@ -32,20 +32,20 @@
       </div>
       <div class="card">
         <h2>Never share</h2>
-        <p class="note">foxspace stops a message that holds one of these terms on any supported chat site, and tells you which. One term per line, for example a passport or phone number.</p>
+        <p class="note">foxspace stops any message that holds one of these terms. One term per line, for example a passport number.</p>
         <textarea id="terms" rows="3" aria-label="Never-share terms" spellcheck="false"></textarea>
-        <div class="bar"><button id="save-terms" type="button">Save terms</button></div>
+        <div class="bar"><button id="save-terms" type="button">Save</button></div>
       </div>
     </section>
       <div class="card">
         <h2>Import</h2>
-        <p class="note">Paste an export, or choose its file: a foxcache archive or memory list, a foxpack file, a foxprefs export or foxprefs rules. Items keep the level they had there; an item with none is "ask". A foxspace export adds its spaces. With no space chosen, foxspace makes one.</p>
+        <p class="note">Paste an export from foxcache, foxpack, foxprefs or foxspace, or choose its file. Items keep their level; an item with no level is "ask".</p>
         <textarea id="import-text" rows="3" aria-label="Export to import" spellcheck="false" placeholder='{"format": "foxcache/v1", ...}'></textarea>
         <div class="bar"><button id="import" class="primary" type="button">Import</button><button id="import-pick" type="button">Choose a file</button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="export" class="ghost" type="button">Export all spaces</button></div>
       </div>
       <div class="card">
         <h2>Recent injections</h2>
-        <p class="note">Which space went into which site, and when. Kept in this browser as a foxtrail log that shows any edit.</p>
+        <p class="note">Which space went into which site, and when. A foxtrail log in this browser shows any edit.</p>
         <ul id="trail" class="plain trail"></ul>
         <p id="trail-check" class="note"></p>
       </div>
