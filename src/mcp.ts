@@ -11,8 +11,6 @@ import { FoxspaceError } from "./errors.js";
 import { renderSpace } from "./render.js";
 import type { Spaces } from "./spaces.js";
 
-export const NOT_READABLE = "is not agent-readable. The user can mark it agent-readable in foxspace.";
-
 const text = (value: unknown, isError = false): CallToolResult => ({
   content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }],
   isError,
@@ -53,7 +51,8 @@ export function createMcpServer(spaces: Spaces): McpServer {
     ({ space, format }) =>
       guarded(async () => {
         const found = await spaces.get(space);
-        if (!found.agentReadable) return text(`foxspace: Space "${found.name}" ${NOT_READABLE}`, true);
+        // M1: a hidden space answers as a missing one, so an agent cannot probe names.
+        if (!found.agentReadable) throw new FoxspaceError("not-found", `There is no space ${JSON.stringify(space)}.`);
         // No ticks: an agent cannot tick, so no "ask" item is rendered.
         const render = renderSpace(found, { format: format ?? "text", ticked: [] });
         return text(render.text || `foxspace: ${render.empty}`, !render.text);
