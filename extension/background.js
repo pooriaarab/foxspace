@@ -1,6 +1,128 @@
-// The demo's background script (an event page in Firefox MV3). The E2E test
-// reads this value back through popup.html. Replace it with code that runs
-// foxspace.
-browser.runtime.onInstalled.addListener(() => {
-  browser.storage.local.set({ fixture: "installed" });
+// The event page. It owns the spaces in storage.local, renders them, checks
+// outgoing messages against never-share terms and keeps the trail of
+// injections. Firefox unloads it when idle; all state is in storage, so a
+// wake is safe (X1).
+//
+// Two kinds of sender, checked on every message (A5):
+// - this extension's own pages: the spaces and sync pages, the popup, and
+//   the picker and guard frames that the content script puts in a chat page;
+// - the content script, in the top frame of a supported chat site. It may
+//   only ask for a guard check and report a send; it never gets a space.
+import { IdbStore, Log, idbKey } from "foxtrail";
+import { FoxspaceError, INJECT_LIMIT, createGuard, createSpaces, parseImport, parsePaste, providerForHost, renderForSync, renderSpace, siteForHost, storageAreaStore } from "../src/index.ts";
+
+export const spaces = createSpaces({ store: storageAreaStore(browser.storage.local) });
+
+// The trail: one foxtrail entry per injection, in IndexedDB, kept in this browser.
+let trail;
+const openTrail = () => (trail ??= (async () => new Log({ store: await IdbStore.open("foxspace-trail"), key: await idbKey("foxspace-trail") }))());
+async function record(entry) {
+  try {
+    await (await openTrail()).append({ actor: "user", ...entry });
+    await browser.storage.local.set({ trailError: null });
+  } catch (error) {
+    // X3: the insert stands; the spaces page shows that the trail failed.
+    await browser.storage.local.set({ trailError: String(error instanceof Error ? error.message : error) });
+  }
+}
+
+const tabSite = (tab) => {
+  try {
+    return siteForHost(new URL(tab?.url ?? "").host);
+  } catch {
+    return undefined;
+  }
+};
+
+/** What the picker frame may show: no private item text, ever. */
+const forPicker = (s) => ({ id: s.id, name: s.name, items: s.items.filter((i) => i.sensitivity !== "private").map(({ id, kind, text, sensitivity }) => ({ id, kind, text, sensitivity })), privateCount: s.items.filter((i) => i.sensitivity === "private").length });
+
+const held = browser.storage.session;
+const tokenOf = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
+const toTop = (tabId, message) => browser.tabs.sendMessage(tabId, message, { frameId: 0 });
+
+async function importInto({ text, into }) {
+  const result = parseImport(text);
+  if (result.format === "foxspace/v1") return { format: result.format, spaces: (await spaces.addSpaces(result.spaces)).map((s) => s.name) };
+  const space = await spaces.get(into);
+  const { added, skipped } = await spaces.addItems(space.id, result.items);
+  if (result.neverShare.length) await spaces.addNeverShare(space.id, result.neverShare);
+  return { format: result.format, space: space.name, added: added.length, skipped, terms: result.neverShare.length, ignored: result.ignored };
+}
+
+/** The messages that the extension's own pages send. */
+export const pageHandlers = {
+  "spaces:list": () => spaces.list(),
+  "spaces:create": ({ name }) => spaces.create(name),
+  "spaces:rename": ({ id, name }) => spaces.rename(id, name),
+  "spaces:agent": ({ id, agentReadable }) => spaces.setAgentReadable(id, agentReadable === true),
+  "spaces:remove": ({ id }) => spaces.remove(id),
+  "spaces:add": ({ id, items }) => spaces.addItems(id, items),
+  "spaces:paste": ({ id, text, kind, sensitivity }) => spaces.addItems(id, parsePaste(text, kind, sensitivity)),
+  "spaces:item": ({ id, itemId, patch }) => spaces.updateItem(id, itemId, patch),
+  "spaces:remove-item": ({ id, itemId }) => spaces.removeItem(id, itemId),
+  "spaces:never-share": ({ id, terms }) => spaces.setNeverShare(id, terms),
+  "spaces:import": importInto,
+  "spaces:export": () => spaces.export(),
+  "sync:render": async ({ id, provider, box, ticked, format }) => renderForSync(await spaces.get(id), provider, box, { ticked, format }),
+  "trail:list": async () => {
+    const log = await openTrail();
+    const [entries, check, { trailError }] = await Promise.all([log.entries(), log.verify(), browser.storage.local.get("trailError")]);
+    return { entries: entries.slice(-20).toReversed().map((e) => ({ ts: e.ts, kind: e.kind, data: e.data })), ok: check.ok, error: trailError ?? null };
+  },
+  // The picker frame lives in a chat tab; sender.tab is that tab.
+  "picker:state": async (_, sender) => {
+    const site = tabSite(sender.tab);
+    if (!site) throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
+    return { site: site.host, label: providerForHost(site.host)?.label ?? site.host, spaces: (await spaces.list()).map(forPicker) };
+  },
+  "picker:render": async ({ id, ticked }) => renderSpace(await spaces.get(id), { ticked, limit: INJECT_LIMIT }),
+  "picker:insert": async ({ id, ticked }, sender) => {
+    const site = tabSite(sender.tab);
+    if (!site) throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
+    const space = await spaces.get(id);
+    const render = renderSpace(space, { ticked, limit: INJECT_LIMIT });
+    if (!render.text) throw new FoxspaceError("bad-request", render.empty);
+    const result = await toTop(sender.tab.id, { type: "foxspace:insert", text: render.text });
+    if (result?.ok && result.landed) await record({ kind: "space.inject", data: { space: space.name, site: site.host, items: render.included.length } });
+    return { ...result, items: render.included.length };
+  },
+  "picker:close": (_, sender) => toTop(sender.tab.id, { type: "foxspace:close-picker" }),
+  "guard:matches": async ({ token }) => (await held.get(token))[token] ?? null,
+  "guard:decide": async ({ token, choice }, sender) => {
+    if (choice !== "send" && choice !== "edit") throw new FoxspaceError("bad-request", "The choice must be send or edit.");
+    await held.remove(token);
+    return toTop(sender.tab.id, { type: "foxspace:guard-decision", token, choice });
+  },
+};
+
+/** The messages that the content script sends. It gets a yes or a token, never a term (G8). */
+export const contentHandlers = {
+  "content:guard": async ({ text }) => {
+    if (typeof text !== "string") throw new FoxspaceError("bad-request", "The text must be a string.");
+    const all = await spaces.list();
+    const result = createGuard(all.flatMap((s) => s.neverShare.map((term) => ({ term, from: s.name }))))(text);
+    if (result.ok) return { ok: true };
+    const token = tokenOf();
+    await held.set({ [token]: { matches: result.matches, tooLong: result.tooLong } });
+    return { ok: false, token };
+  },
+};
+
+const own = browser.runtime.getURL("");
+/** One of this extension's pages, in a tab or in a frame (A5). */
+export const fromOwnPage = (sender) => sender?.id === browser.runtime.id && typeof sender.url === "string" && sender.url.startsWith(own);
+/** The content script in the top frame of a supported chat site (A5). */
+export const fromContent = (sender) => sender?.id === browser.runtime.id && sender.frameId === 0 && Boolean(tabSite(sender.tab)) && typeof sender.url === "string" && !sender.url.startsWith(own);
+
+browser.runtime.onMessage.addListener((message, sender) => {
+  const type = message?.type;
+  const handler = fromOwnPage(sender) && Object.hasOwn(pageHandlers, type) ? pageHandlers[type] : fromContent(sender) && Object.hasOwn(contentHandlers, type) ? contentHandlers[type] : undefined;
+  if (!handler) return undefined;
+  return Promise.resolve()
+    .then(() => handler(message, sender))
+    .then(
+      (value) => ({ ok: true, value }),
+      (error) => ({ ok: false, code: error instanceof FoxspaceError ? error.code : "error", error: error instanceof Error ? error.message : String(error) }),
+    );
 });

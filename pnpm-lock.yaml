@@ -11,6 +11,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.1
         version: 1.32.1(zod@4.6.7)
+      foxtrail:
+        specifier: 0.1.4
+        version: 0.1.4
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1303,6 +1306,11 @@ packages:
   forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
+
+  foxtrail@0.1.4:
+    resolution: {integrity: sha512-XbJ+frYfyPHx25Xi7obIHUDJVclxGgRS32xEMdxIger0i33sePKw36Cl2GY0llHabNAh6YBWzDfxWWA9toRvKg==}
+    engines: {node: '>=24'}
+    hasBin: true
 
   fresh@2.0.0:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
@@ -3495,6 +3503,8 @@ snapshots:
   flatted@3.4.4: {}
 
   forwarded@0.2.0: {}
+
+  foxtrail@0.1.4: {}
 
   fresh@2.0.0: {}
 
