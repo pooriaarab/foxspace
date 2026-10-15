@@ -21,5 +21,9 @@
     "default_title": "foxspace",
     "default_popup": "popup.html",
     "default_icon": { "48": "icons/icon-48.png", "96": "icons/icon-96.png" }
+  },
+  "options_ui": {
+    "page": "spaces.html",
+    "open_in_tab": true
   }
 }
