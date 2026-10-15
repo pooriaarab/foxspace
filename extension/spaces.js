@@ -164,4 +164,16 @@ $("export").addEventListener("click", async () => {
   }
 });
 
+async function loadTrail() {
+  const trail = await ask("trail:list");
+  $("trail").replaceChildren(...trail.entries.map((e) => {
+    const when = new Date(e.ts).toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
+    return el("li", {}, [el("b", { textContent: e.data.space }), ` into ${e.data.site}, ${e.data.items} item${e.data.items === 1 ? "" : "s"}`, el("span", { className: "when", textContent: when })]);
+  }));
+  if (!trail.entries.length) $("trail").append(el("li", { className: "note", textContent: "Nothing yet." }));
+  $("trail-check").textContent = trail.error ? `The last injection was not written to the trail: ${trail.error}` : trail.ok ? "The trail checks out: no entry was changed or removed." : "The trail does not check out: an entry was changed or removed.";
+  $("trail-check").classList.toggle("bad", Boolean(trail.error) || !trail.ok);
+}
+
 load().catch(failed);
+loadTrail().catch(failed);
