@@ -4,10 +4,11 @@
 // The insert method is the one foxpaw (src/page/act.ts, typeText) and
 // foxpilot's PII Guard (apps/pii-guard/src/content/content.ts) use, MIT,
 // by Pooria Arab: document.execCommand("insertText") inserts like typing,
-// so the site's editor (React, ProseMirror, Lexical, Quill) gets the
-// beforeinput and input events it listens for. foxspace does not set
-// value or innerHTML: an editor would not see that text, and the user
-// would send without it. It reads the composer back instead (A3).
+// so the site's editor (React, ProseMirror, Lexical, Quill) sees the
+// change. foxspace types one line at a time and makes each paragraph as
+// Enter does (A12). It does not set value or innerHTML: an editor would
+// not see that text, and the user would send without it. It reads the
+// composer back instead (A3, A13).
 import type { SiteAdapter } from "./sites.js";
 
 export type Composer = HTMLTextAreaElement | HTMLElement;
@@ -60,8 +61,10 @@ export function holds(el: Composer, block: string): boolean {
 export async function insertBlock(el: Composer, block: string): Promise<boolean> {
   el.focus();
   const text = composerText(el).trim() ? `${block}\n\n` : block;
-  if (el instanceof HTMLTextAreaElement) el.setSelectionRange(0, 0);
-  else {
+  if (el instanceof HTMLTextAreaElement) {
+    el.setSelectionRange(0, 0);
+    document.execCommand("insertText", false, text);
+  } else {
     // The start of the first block in the editor, where the caret goes on a click at the top.
     let first: Node = el;
     while (first.firstChild && first.firstChild.nodeType === Node.ELEMENT_NODE && (first.firstChild as Element).tagName !== "BR") first = first.firstChild;
@@ -71,8 +74,18 @@ export async function insertBlock(el: Composer, block: string): Promise<boolean>
     const selection = getSelection();
     selection?.removeAllRanges();
     selection?.addRange(range);
+    // One line at a time, with a new paragraph between lines, as typing with
+    // Enter does. A newline inside insertText is lost or merged by Quill and
+    // ProseMirror. Lexical makes its paragraphs from beforeinput, which
+    // execCommand does not fire in Firefox, so the paragraph is offered as
+    // beforeinput first; an editor that takes it cancels the event.
+    text.split("\n").forEach((line, i) => {
+      if (i && el.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertParagraph", bubbles: true, cancelable: true, composed: true }))) {
+        document.execCommand("insertParagraph");
+      }
+      if (line) document.execCommand("insertText", false, line);
+    });
   }
-  document.execCommand("insertText", false, text);
   // Editors render their model after the event that changed it.
   await new Promise((done) => setTimeout(done, 0));
   return holds(el, block);
