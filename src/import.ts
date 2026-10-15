@@ -29,7 +29,8 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 /** JSON.parse with a size cap (I1) that refuses prototype keys (I2). */
 export function parseJson(text: string): unknown {
   if (typeof text !== "string") bad("it is not text");
-  if (new TextEncoder().encode(text).length > MAX_IMPORT_BYTES) throw new FoxspaceError("too-large", `The import is larger than ${MAX_IMPORT_BYTES / 1024} KB.`);
+  // UTF-8 has at least one byte per UTF-16 unit, so a long text fails before it is encoded.
+  if (text.length > MAX_IMPORT_BYTES || new TextEncoder().encode(text).length > MAX_IMPORT_BYTES) throw new FoxspaceError("too-large", `The import is larger than ${MAX_IMPORT_BYTES / 1024} KB.`);
   let key = "";
   try {
     return JSON.parse(text, function (k, v) {
