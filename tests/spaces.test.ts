@@ -1,4 +1,4 @@
-// S6-S10 and I7 in docs/failure-modes.md: the spaces object and its stores.
+// S6-S10, I7 and I10 in docs/failure-modes.md: the spaces object and its stores.
 import { describe, expect, it } from "vitest";
 import { FORMAT, FoxspaceError, createSpaces, memoryStore, storageAreaStore, type SpaceStore } from "../src/index.js";
 
@@ -43,6 +43,16 @@ describe("spaces", () => {
     const again = await spaces.addItems(space.id, [{ kind: "memory", text: " I am vegetarian. " }, { kind: "snippet", text: "I am vegetarian." }]);
     expect([again.added.length, again.skipped]).toEqual([1, 1]);
     expect((await spaces.get(space.id)).items).toHaveLength(3);
+  });
+
+  it("I10 imports items and terms in one change, or nothing", async () => {
+    const { spaces, space } = await trip();
+    expect(await errorOf(spaces.importInto("Work", [{ kind: "memory", text: "Q4 plan." }], [], { create: false }))).toBe('not-found: There is no space "Work".');
+    const made = await spaces.importInto("Work", [{ kind: "memory", text: "Q4 plan." }], ["Q4"], { create: true });
+    expect([made.space.name, made.added.length, made.space.neverShare]).toEqual(["Work", 1, ["Q4"]]);
+    const many = Array.from({ length: 101 }, (_, i) => `term ${i}`);
+    expect(await errorOf(spaces.importInto(space.id, [{ kind: "memory", text: "Kept out." }], many, { create: false }))).toMatch(/^bad-space: .* the limit is 100\.$/);
+    expect((await spaces.get(space.id)).items).toEqual([]);
   });
 
   it("updates an item and checks the change", async () => {
