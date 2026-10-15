@@ -1,6 +1,6 @@
-// N1-N3 in docs/failure-modes.md: the file store at FOXSPACE_HOME.
+// N1-N4 in docs/failure-modes.md: the file store at FOXSPACE_HOME.
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, stat, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -40,6 +40,14 @@ describe("file store", () => {
     const store = fileStore(join(dir, "spaces.json"));
     await expect(store.write({ format: "foxspace/v1", spaces: [], updatedAt: "2026-10-15T00:00:00.000Z" })).rejects.toThrow();
     expect((await readdir(dir)).filter((f) => f.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("N4 refuses a huge store by its size, before it reads it", async () => {
+    const env = { FOXSPACE_HOME: await home() };
+    await mkdir(env.FOXSPACE_HOME, { recursive: true });
+    await writeFile(spacesPath(env), "");
+    await truncate(spacesPath(env), 3 * 1024 ** 3); // sparse: no disk used
+    await expect(openSpaces({ env }).list()).rejects.toThrow(new FoxspaceError("bad-store", `${spacesPath(env)} is too large to be a foxspace store.`));
   });
 
   it("N3 loses no change when separate stores write at once, as processes do", async () => {

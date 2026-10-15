@@ -1,11 +1,11 @@
 // The foxspace command. runCli takes the arguments and the output streams,
 // so tests run it in process. Exit codes: 0 done, 1 a foxspace error,
 // 2 bad usage, 3 the guard found a never-share term.
-import { readFile } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { FoxspaceError } from "./errors.js";
 import { createGuard } from "./guard.js";
-import { parseImport } from "./import.js";
+import { MAX_IMPORT_BYTES, parseImport } from "./import.js";
 import { openSpaces } from "./node.js";
 import { providerById } from "./providers.js";
 import { renderForSync, renderSpace } from "./render.js";
@@ -63,8 +63,12 @@ function show(space: Space): string {
 async function importFile(spaces: Spaces, file: string, into: string | undefined): Promise<string> {
   let text: string;
   try {
-    text = await readFile(file, "utf8");
+    await using handle = await open(file);
+    // I1: the size decides before a byte is read.
+    if ((await handle.stat()).size > MAX_IMPORT_BYTES) throw new FoxspaceError("too-large", `The import is larger than ${MAX_IMPORT_BYTES / 1024} KB.`);
+    text = await handle.readFile("utf8");
   } catch (error) {
+    if (error instanceof FoxspaceError) throw error;
     throw new FoxspaceError("bad-import", `Cannot read ${file}: ${(error as NodeJS.ErrnoException).code ?? (error as Error).message}.`);
   }
   const result = parseImport(text);

@@ -1,6 +1,6 @@
 // foxspace/node: the file store that the CLI and the MCP server use.
 // The file is $FOXSPACE_HOME/spaces.json, default ~/.foxspace/spaces.json.
-import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -36,12 +36,14 @@ export function fileStore(path: string): SpaceStore {
     async read() {
       let text: string;
       try {
-        text = await readFile(path, "utf8");
+        await using handle = await open(path);
+        // N4: the size decides before a byte is read.
+        if ((await handle.stat()).size > MAX_IMPORT_BYTES * 8) throw new FoxspaceError("bad-store", `${path} is too large to be a foxspace store.`);
+        text = await handle.readFile("utf8");
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
         throw error;
       }
-      if (text.length > MAX_IMPORT_BYTES * 8) throw new FoxspaceError("bad-store", `${path} is too large to be a foxspace store.`);
       try {
         return JSON.parse(text);
       } catch {
