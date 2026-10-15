@@ -81,4 +81,19 @@ describe("foxspace command", () => {
     expect(r.err).toMatch(/^foxspace: The import is not valid: it is not one of /);
     expect((await run("show", "Nope")).err).toBe('foxspace: There is no space "Nope".\n');
   });
+
+  it("I10 adds nothing when an import breaks a space limit", async () => {
+    const { env, run } = await setup();
+    const prefs = join(env.FOXSPACE_HOME, "prefs.json");
+    const terms = Array.from({ length: 101 }, (_, i) => `secret ${i}`);
+    await writeFile(prefs, JSON.stringify({ format: "foxprefs/v1", values: { "food.diet": "vegetarian", "rules.neverShare": terms }, sensitivity: {} }));
+    await run("import", ARCHIVE, "--into", "Trip");
+    const r = await run("import", prefs, "--into", "Trip");
+    expect([r.code, r.err]).toEqual([1, 'foxspace: Space "Trip" has 101 never-share terms; the limit is 100.\n']);
+    expect((await run("list")).out).toMatch(/ {2}Trip {2}\(5 items\)\n$/);
+    const pack = join(env.FOXSPACE_HOME, "pack.json");
+    await writeFile(pack, JSON.stringify({ format: "foxpack/v1", memories: Array.from({ length: 301 }, (_, i) => `Memory ${i}`) }));
+    expect((await run("import", pack)).code).toBe(1);
+    expect((await run("list")).out).not.toContain("Imported from foxpack");
+  });
 });

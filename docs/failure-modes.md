@@ -49,6 +49,7 @@ the reason, and it never guesses where text should go.
 | I6 | One item in an import fails the item checks | The whole import fails and names the item; nothing is added | tests/import.test.ts |
 | I7 | An import repeats items that the space has | An item with the same text and kind is not added twice | tests/spaces.test.ts |
 | I8 | A foxprefs export holds `rules.neverShare` | The terms become never-share terms of the space, and are not rendered | tests/import.test.ts |
+| I10 | The items fit but the import breaks a space limit (101 never-share terms, 301 items) | The space, its items and its terms are one change: it fails as a whole, and no item, term or empty "Imported from" space is left | tests/cli.test.ts, tests/spaces.test.ts |
 | I9 | A foxspace file from someone else marks its spaces agent-readable | An imported space is never agent-readable; the user opts in | tests/import.test.ts |
 
 ## Guard
