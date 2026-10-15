@@ -127,4 +127,41 @@ $("save-terms").addEventListener("click", async () => {
   }
 });
 
+async function importText(text) {
+  try {
+    const r = await ask("spaces:import", { text, into: current });
+    $("import-text").value = "";
+    if (r.spaces) status(`Imported ${r.format}: added ${r.spaces.length} space${r.spaces.length === 1 ? "" : "s"}.`);
+    else {
+      const notes = [`Imported ${r.format}: added ${r.added} item${r.added === 1 ? "" : "s"} to "${r.space}"${r.skipped ? ` (${r.skipped} already there)` : ""}.`];
+      if (r.terms) notes.push(`Added ${r.terms} never-share term${r.terms === 1 ? "" : "s"}.`);
+      if (r.ignored.length) notes.push(`Not read: ${r.ignored.join(", ")}.`);
+      status(notes.join(" "));
+    }
+    await load();
+  } catch (error) {
+    failed(error);
+  }
+}
+$("import").addEventListener("click", () => importText($("import-text").value));
+$("import-pick").addEventListener("click", () => $("import-file").click());
+$("import-file").addEventListener("change", async () => {
+  const file = $("import-file").files?.[0];
+  $("import-file").value = "";
+  // The event page checks the size too; this stops a huge file before it is read.
+  if (file && file.size > 1024 * 1024) return status("The file is larger than 1024 KB.", true);
+  if (file) await importText(await file.text());
+});
+$("export").addEventListener("click", async () => {
+  try {
+    const state = await ask("spaces:export");
+    const url = URL.createObjectURL(new Blob([`${JSON.stringify(state, null, 2)}\n`], { type: "application/json" }));
+    el("a", { href: url, download: `foxspace-${new Date().toISOString().slice(0, 10)}.json` }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status(`Exported ${state.spaces.length} space${state.spaces.length === 1 ? "" : "s"}. The file holds private items too; keep it safe.`);
+  } catch (error) {
+    failed(error);
+  }
+});
+
 load().catch(failed);
