@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Le Chat - Mistral AI</title><link rel="stylesheet" href="/style.css"></head>
+<body class="mistral"><main><h1>Ask Le Chat anything</h1>
+<form class="composer" onsubmit="return false"><div id="editor"></div>
+<button class="send" aria-label="Send" type="submit">&#8593;</button></form><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "prosemirror", host: "#editor", send: 'button[aria-label="Send"]' });</script>
+</body></html>
