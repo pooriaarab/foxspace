@@ -56,7 +56,7 @@ function showSpace() {
     const level = el("span", { className: `level ${item.sensitivity}`, textContent: item.sensitivity === "public" ? "always" : "ask" });
     return el("li", {}, [el("label", {}, [box, el("span", { className: "text" }, [el("b", { textContent: `${KINDS[item.kind]}: ` }), item.text]), level])]);
   }));
-  if (s.privateCount) $("items").append(el("li", { className: "note", textContent: `${s.privateCount} private item${s.privateCount === 1 ? "" : "s"} stay out.` }));
+  if (s.privateCount) $("items").append(el("li", { className: "note", textContent: s.privateCount === 1 ? "1 private item stays out." : `${s.privateCount} private items stay out.` }));
   return preview();
 }
 
