@@ -45,6 +45,7 @@
     "@types/node": "^24.19.1",
     "create-foxkit": "^0.1.8",
     "esbuild": "^0.28.2",
+    "foxtrail": "0.1.4",
     "happy-dom": "^21.0.1",
     "oxlint": "^1.87.0",
     "typescript": "^7.0.2",
@@ -53,7 +54,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "foxtrail": "0.1.4",
     "zod": "^4.6.7"
   },
   "keywords": [
