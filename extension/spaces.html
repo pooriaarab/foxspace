@@ -43,6 +43,12 @@
         <textarea id="import-text" rows="3" aria-label="Export to import" spellcheck="false" placeholder='{"format": "foxcache/v1", ...}'></textarea>
         <div class="bar"><button id="import" class="primary" type="button">Import</button><button id="import-pick" type="button">Choose a file</button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="export" class="ghost" type="button">Export all spaces</button></div>
       </div>
+      <div class="card">
+        <h2>Recent injections</h2>
+        <p class="note">Which space went into which site, and when. Kept in this browser as a foxtrail log that shows any edit.</p>
+        <ul id="trail" class="plain trail"></ul>
+        <p id="trail-check" class="note"></p>
+      </div>
     </div>
   </div>
   <script src="spaces.js"></script>
