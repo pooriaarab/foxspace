@@ -6,6 +6,8 @@ export interface SpaceStore {
   /** The stored record as plain JSON data, or undefined when there is none yet. */
   read(): Promise<unknown>;
   write(state: SpacesState): Promise<void>;
+  /** Run fn while no other process changes the record. A change reads and writes inside it. */
+  lock<T>(fn: () => Promise<T>): Promise<T>;
 }
 
 /** A store in memory, for tests and short-lived agents. */
@@ -16,6 +18,7 @@ export function memoryStore(initial?: SpacesState): SpaceStore {
     write: async (next) => {
       state = JSON.stringify(next);
     },
+    lock: (fn) => fn(),
   };
 }
 
@@ -25,10 +28,11 @@ export interface StorageAreaLike {
   set(items: Record<string, unknown>): Promise<void>;
 }
 
-/** A store in a WebExtension storage area, under one key. */
+/** A store in a WebExtension storage area, under one key. Only the event page changes it, so the lock is the spaces queue. */
 export function storageAreaStore(area: StorageAreaLike, key = "foxspace"): SpaceStore {
   return {
     read: async () => (await area.get(key))[key],
     write: (state) => area.set({ [key]: structuredClone(state) }),
+    lock: (fn) => fn(),
   };
 }

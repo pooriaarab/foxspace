@@ -1,4 +1,5 @@
-// N1 and N2 in docs/failure-modes.md: the file store at FOXSPACE_HOME.
+// N1-N3 in docs/failure-modes.md: the file store at FOXSPACE_HOME.
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -39,5 +40,23 @@ describe("file store", () => {
     const store = fileStore(join(dir, "spaces.json"));
     await expect(store.write({ format: "foxspace/v1", spaces: [], updatedAt: "2026-10-15T00:00:00.000Z" })).rejects.toThrow();
     expect((await readdir(dir)).filter((f) => f.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("N3 loses no change when separate stores write at once, as processes do", async () => {
+    const env = { FOXSPACE_HOME: await home() };
+    const space = await openSpaces({ env }).create("Trip");
+    // Each openSpaces has its own queue, like a separate foxspace process.
+    await Promise.all(Array.from({ length: 8 }, (_, i) => openSpaces({ env }).addItems(space.id, [{ kind: "memory", text: `Note ${i}` }])));
+    expect((await openSpaces({ env }).get("Trip")).items).toHaveLength(8);
+    expect(await readdir(env.FOXSPACE_HOME)).toEqual(["spaces.json"]);
+  });
+
+  it("N3 takes over a lock that a process that is gone left behind", async () => {
+    const env = { FOXSPACE_HOME: await home() };
+    await mkdir(env.FOXSPACE_HOME, { recursive: true });
+    const gone = spawnSync(process.execPath, ["-p", "process.pid"], { encoding: "utf8" }).stdout.trim();
+    await writeFile(`${spacesPath(env)}.lock`, gone);
+    await openSpaces({ env }).create("Trip");
+    expect((await openSpaces({ env }).list()).map((s) => s.name)).toEqual(["Trip"]);
   });
 });
