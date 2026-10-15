@@ -1,6 +1,7 @@
 // The foxspace/v1 record: spaces of context items. Every check copies the
 // known fields only, so a stored or imported object never carries extra keys.
 import { FoxspaceError, type FoxspaceErrorCode } from "./errors.js";
+import { termProblem } from "./guard.js";
 import { textProblem } from "./text.js";
 
 export const FORMAT = "foxspace/v1";
@@ -84,7 +85,10 @@ export function checkItem(raw: unknown, where: string, code: FoxspaceErrorCode =
 }
 
 export function checkTerm(raw: unknown, where: string, code: FoxspaceErrorCode = "bad-space"): string {
-  return text(raw, LIMITS.term, where, code).trim();
+  const term = text(raw, LIMITS.term, where, code).trim();
+  const why = termProblem(term);
+  if (why) fail(code, where, why);
+  return term;
 }
 
 const time = (raw: unknown, where: string, code: FoxspaceErrorCode) => {
