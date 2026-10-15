@@ -92,6 +92,7 @@ the reason, and it never guesses where text should go.
 |---|---|---|---|
 | N1 | `$FOXSPACE_HOME/spaces.json` is not JSON | `bad-store`; the file is not changed | tests/node.test.ts |
 | N2 | A crash during a write | The write goes to a temp file and renames, so no half file; a failed rename removes the temp file | tests/node.test.ts |
+| N3 | Two foxspace processes change the store at once, so one change is lost | A change holds `spaces.json.lock` (an exclusive create) from its read to its write. Another process waits up to 10 s, then fails with `bad-store` that names the lock. A lock left by a process that is gone is taken over | tests/node.test.ts |
 | C1 | Bad usage (unknown command, missing argument, unknown flag) | Exit 2 with the usage text | tests/cli.test.ts |
 | C2 | `show` prints private items | Private text is masked; only its length shows | tests/cli.test.ts |
 | C3 | `guard` finds a term | Exit 3 and the term; exit 0 when clean | tests/cli.test.ts |
