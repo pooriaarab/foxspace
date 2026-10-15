@@ -145,3 +145,8 @@ pre.empty { color: var(--muted); font-family: inherit; }
 .terms li { padding: 6px 10px; background: var(--raise); border-radius: 8px; color: var(--muted); }
 .terms li + li { margin-top: 6px; }
 .terms b { color: var(--bad); font-weight: 600; font-family: var(--mono); }
+
+/* Sync page */
+.count-line { font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+a.button-link { display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 13.5px; font-weight: 550; }
+a.button-link:hover { background: var(--hover); }
