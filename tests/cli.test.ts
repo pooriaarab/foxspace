@@ -1,5 +1,5 @@
 // C1-C3 in docs/failure-modes.md: the foxspace command.
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +80,14 @@ describe("foxspace command", () => {
     expect(r.code).toBe(1);
     expect(r.err).toMatch(/^foxspace: The import is not valid: it is not one of /);
     expect((await run("show", "Nope")).err).toBe('foxspace: There is no space "Nope".\n');
+  });
+
+  it("I1 refuses a huge file by its size, before it reads it", async () => {
+    const { env, run } = await setup();
+    const huge = join(env.FOXSPACE_HOME, "huge.json");
+    await writeFile(huge, "");
+    await truncate(huge, 3 * 1024 ** 3); // sparse: no disk used
+    expect(await run("import", huge)).toEqual({ code: 1, out: "", err: "foxspace: The import is larger than 1024 KB.\n" });
   });
 
   it("I10 adds nothing when an import breaks a space limit", async () => {
