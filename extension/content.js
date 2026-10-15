@@ -156,7 +156,11 @@ function start(site) {
     const found = findComposer(document, site);
     if (!found.ok || !event.composedPath().includes(found.element)) return;
     const init = { key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true, composed: true, ctrlKey: event.ctrlKey, metaKey: event.metaKey };
-    guard(event, found.element, () => found.element.dispatchEvent(new KeyboardEvent("keydown", init)));
+    // After Send anyway the focus is in the dialog; Quill acts on keys only while it has it.
+    guard(event, found.element, () => {
+      found.element.focus();
+      found.element.dispatchEvent(new KeyboardEvent("keydown", init));
+    });
   }, true);
   const SEND = site.send.join(", ");
   addEventListener("click", (event) => {

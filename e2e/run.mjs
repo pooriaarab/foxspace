@@ -310,6 +310,15 @@ try {
     check(`${host}: the guard stops an Enter on the new composer`, [true, 1], [Boolean(dialog), (await sent(page)).length]);
     await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
     await dialog.click("#edit");
+    // Send anyway replays the Enter, after a click in the dialog took the focus (A16).
+    await sleep(300);
+    await page.click(composer);
+    await page.keyboard.press("Enter");
+    dialog = await frameOf(page, "/guard.html");
+    await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
+    await dialog.click("#send");
+    await poll(page, () => document.querySelectorAll("#sent li").length === 2, undefined, 5000).catch(() => false);
+    check(`${host}: Send anyway sends the stopped Enter`, "my passport is AB123456", (await sent(page))[1] ?? "");
   }
 
   // 10. A public item that holds a never-share term: the picker names it and does not insert it (G10).
