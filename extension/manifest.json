@@ -26,12 +26,12 @@
     {
       "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["picker.html", "icons/icon-48.png"],
+      "resources": ["picker.html", "guard.html", "icons/icon-48.png"],
       "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"]
     }
   ],
