@@ -192,9 +192,10 @@ function start(site) {
         }
         const found = findComposer(document, site);
         if (!found.ok) return Promise.resolve({ ok: false, error: found.error });
-        const landed = insertBlock(found.element, message.text);
-        if (landed) close();
-        return Promise.resolve({ ok: true, landed });
+        return insertBlock(found.element, message.text).then((landed) => {
+          if (landed) close();
+          return { ok: true, landed };
+        });
       }
       default:
         return undefined;
