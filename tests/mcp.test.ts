@@ -24,7 +24,7 @@ async function connect() {
     const r = (await client.callTool({ name, arguments: args })) as { content: { text: string }[]; isError?: boolean };
     return { text: r.content[0]!.text, isError: Boolean(r.isError) };
   };
-  return { client, call, trip };
+  return { client, call, spaces, trip };
 }
 
 describe("foxspace MCP server", () => {
@@ -47,5 +47,12 @@ describe("foxspace MCP server", () => {
     expect(r).toEqual({ text: 'Context for this chat, from my foxspace "Trip to Japan":\n\nInstructions:\nPlan by train.', isError: false });
     expect(await call("get_space", { space: "wORK" })).toEqual({ text: 'foxspace: There is no space "wORK".', isError: true });
     expect(await call("get_space", { space: "Nope" })).toEqual({ text: 'foxspace: There is no space "Nope".', isError: true });
+  });
+
+  it("G10 refuses a space whose public items hold a never-share term, and does not name it", async () => {
+    const { call, spaces, trip } = await connect();
+    await spaces.addItems(trip.id, [{ kind: "memory", text: "Client is Zephyrcorp.", sensitivity: "public" }]);
+    await spaces.setNeverShare(trip.id, ["AB123456", "Zephyrcorp"]);
+    expect(await call("get_space", { space: "Trip to Japan" })).toEqual({ text: 'foxspace: Space "Trip to Japan" has a public item with a never-share term, so foxspace does not give it out. The user can make that item private in foxspace.', isError: true });
   });
 });
