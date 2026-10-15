@@ -1,0 +1,12 @@
+body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #212121; color: #ececec; }
+main { max-width: 720px; margin: 0 auto; padding: 18vh 16px 40px; }
+h1 { font-size: 26px; font-weight: 500; text-align: center; margin: 0 0 24px; }
+.composer { background: #303030; border-radius: 26px; padding: 12px 14px 12px 20px; display: flex; gap: 10px; align-items: flex-end; }
+.composer [contenteditable], .composer textarea { flex: 1; min-height: 26px; max-height: 220px; overflow: auto; outline: none; border: 0; background: transparent; color: inherit; font: inherit; resize: none; white-space: pre-wrap; }
+.composer p { margin: 0; }
+.send { width: 34px; height: 34px; border-radius: 50%; border: 0; background: #ececec; color: #212121; font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+#sent { margin-top: 24px; color: #b4b4b4; font-size: 14px; white-space: pre-wrap; }
+body.claude { background: #262624; color: #e5e5e2; } body.claude .composer { background: #30302e; border-radius: 18px; border: 1px solid #4a4a46; }
+body.claude .send { background: #c96442; color: white; border-radius: 9px; }
+body.deepseek { background: #fff; color: #222; } body.deepseek .composer { background: #f3f4f6; border-radius: 22px; }
+body.deepseek .send { background: #4d6bfe; color: white; }
