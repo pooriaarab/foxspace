@@ -60,9 +60,7 @@ async function importInto({ text, into }) {
   const result = parseImport(text);
   if (result.format === "foxspace/v1") return { format: result.format, spaces: (await spaces.addSpaces(result.spaces)).map((s) => s.name) };
   const name = `Imported from ${result.format.split("/")[0]}`;
-  const space = into ? await spaces.get(into) : await spaces.get(name).catch(() => spaces.create(name));
-  const { added, skipped } = await spaces.addItems(space.id, result.items);
-  if (result.neverShare.length) await spaces.addNeverShare(space.id, result.neverShare);
+  const { space, added, skipped } = await spaces.importInto(into || name, result.items, result.neverShare, { create: !into });
   return { format: result.format, space: space.name, added: added.length, skipped, terms: result.neverShare.length, ignored: result.ignored };
 }
 

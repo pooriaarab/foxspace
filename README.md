@@ -116,7 +116,7 @@ Checked on 2026-10-15 against the linked pages.
 
 | Export | What it does |
 |---|---|
-| `createSpaces({ store, now? })` | The spaces object: `list`, `get` (id or name), `create`, `rename`, `setAgentReadable`, `remove`, `addItems`, `updateItem`, `removeItem`, `setNeverShare`, `addNeverShare`, `addSpaces`, `export`. |
+| `createSpaces({ store, now? })` | The spaces object: `list`, `get` (id or name), `create`, `rename`, `setAgentReadable`, `remove`, `addItems`, `updateItem`, `removeItem`, `setNeverShare`, `addNeverShare`, `importInto`, `addSpaces`, `export`. |
 | `memoryStore()`, `storageAreaStore(area, key?)` | Stores in memory, or in a WebExtension area such as `browser.storage.local`. |
 | `renderSpace(space, { ticked?, format?, limit?, kinds? })` | `{ text, included, left, empty? }`. Plain text or Markdown. Whole items that do not fit are left out and counted. |
 | `renderForSync(space, provider, box, { ticked?, format? })` | The same, sized for one settings box. |

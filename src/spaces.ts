@@ -42,6 +42,12 @@ export interface Spaces {
   /** Add never-share terms that the space does not have yet. */
   addNeverShare(id: string, terms: string[]): Promise<Space>;
   /**
+   * Add items and never-share terms from an import to a space, in one
+   * change: when any part breaks a limit, nothing is added (I10). With
+   * create, a space that does not exist is made with that name.
+   */
+  importInto(idOrName: string, items: NewItem[], neverShare: string[], opts: { create: boolean }): Promise<{ space: Space; added: SpaceItem[]; skipped: number }>;
+  /**
    * Add spaces from a foxspace/v1 file as new spaces, with new ids. A taken
    * name gets " (2)". An added space is never agent-readable: the user opts
    * in again (I9).
@@ -54,8 +60,9 @@ export interface Spaces {
 const empty = (now: number): SpacesState => ({ format: FORMAT, spaces: [], updatedAt: new Date(now).toISOString() });
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+const lookup = (state: SpacesState, idOrName: string): Space | undefined => state.spaces.find((s) => s.id === idOrName) ?? state.spaces.find((s) => same(s.name, idOrName));
 const find = (state: SpacesState, idOrName: string): Space => {
-  const space = state.spaces.find((s) => s.id === idOrName) ?? state.spaces.find((s) => same(s.name, idOrName));
+  const space = lookup(state, idOrName);
   if (!space) throw new FoxspaceError("not-found", `There is no space ${JSON.stringify(idOrName)}.`);
   return space;
 };
@@ -68,6 +75,35 @@ const touch = (space: Space, stamp: string) => {
   space.updatedAt = stamp;
   return space;
 };
+
+function make(state: SpacesState, name: string, agentReadable: boolean, stamp: string): Space {
+  if (state.spaces.length >= LIMITS.spaces) throw new FoxspaceError("bad-space", `You have ${LIMITS.spaces} spaces; that is the limit.`);
+  const clean = typeof name === "string" ? name.trim() : name;
+  if (state.spaces.some((s) => typeof clean === "string" && same(s.name, clean))) throw new FoxspaceError("bad-space", `A space named "${clean}" exists already.`);
+  const space: Space = { id: newId(), name: clean, items: [], neverShare: [], agentReadable, createdAt: stamp, updatedAt: stamp };
+  state.spaces.push(space);
+  return space;
+}
+
+function addTo(space: Space, items: NewItem[], stamp: string): { added: SpaceItem[]; skipped: number } {
+  if (!Array.isArray(items)) throw new FoxspaceError("bad-space", "Items must be a list.");
+  const added: SpaceItem[] = [];
+  let skipped = 0;
+  for (const [i, raw] of items.entries()) {
+    const item = checkItem({ ...raw, id: newId() }, `New item ${i + 1}`);
+    if ([...space.items, ...added].some((x) => x.kind === item.kind && x.text.trim() === item.text.trim())) skipped++;
+    else added.push(item);
+  }
+  space.items.push(...added);
+  touch(space, stamp);
+  return { added, skipped };
+}
+
+function addTerms(space: Space, terms: string[], stamp: string): Space {
+  if (!Array.isArray(terms)) throw new FoxspaceError("bad-space", "Never-share terms must be a list.");
+  space.neverShare = unique([...space.neverShare, ...terms.map((t, i) => checkTerm(t, `Never-share term ${i + 1}`))]);
+  return touch(space, stamp);
+}
 
 export function createSpaces(options: SpacesOptions): Spaces {
   const { store } = options;
@@ -102,15 +138,7 @@ export function createSpaces(options: SpacesOptions): Spaces {
   const spaces: Spaces = {
     list: () => serial(async () => (await load()).spaces),
     get: (idOrName) => serial(async () => find(await load(), idOrName)),
-    create: (name, opts = {}) =>
-      change((state, stamp) => {
-        if (state.spaces.length >= LIMITS.spaces) throw new FoxspaceError("bad-space", `You have ${LIMITS.spaces} spaces; that is the limit.`);
-        const clean = typeof name === "string" ? name.trim() : name;
-        if (state.spaces.some((s) => typeof clean === "string" && same(s.name, clean))) throw new FoxspaceError("bad-space", `A space named "${clean}" exists already.`);
-        const space: Space = { id: newId(), name: clean, items: [], neverShare: [], agentReadable: opts.agentReadable === true, createdAt: stamp, updatedAt: stamp };
-        state.spaces.push(space);
-        return space;
-      }),
+    create: (name, opts = {}) => change((state, stamp) => make(state, name, opts.agentReadable === true, stamp)),
     rename: (id, name) =>
       change((state, stamp) => {
         const space = find(state, id);
@@ -129,21 +157,7 @@ export function createSpaces(options: SpacesOptions): Spaces {
         const space = find(state, id);
         state.spaces = state.spaces.filter((s) => s !== space);
       }),
-    addItems: (id, items) =>
-      change((state, stamp) => {
-        const space = find(state, id);
-        if (!Array.isArray(items)) throw new FoxspaceError("bad-space", "Items must be a list.");
-        const added: SpaceItem[] = [];
-        let skipped = 0;
-        for (const [i, raw] of items.entries()) {
-          const item = checkItem({ ...raw, id: newId() }, `New item ${i + 1}`);
-          if ([...space.items, ...added].some((x) => x.kind === item.kind && x.text.trim() === item.text.trim())) skipped++;
-          else added.push(item);
-        }
-        space.items.push(...added);
-        touch(space, stamp);
-        return { added, skipped };
-      }),
+    addItems: (id, items) => change((state, stamp) => addTo(find(state, id), items, stamp)),
     updateItem: (id, itemId, patch) =>
       change((state, stamp) => {
         const space = find(state, id);
@@ -168,12 +182,13 @@ export function createSpaces(options: SpacesOptions): Spaces {
         space.neverShare = unique(terms.map((t, i) => checkTerm(t, `Never-share term ${i + 1}`)));
         return touch(space, stamp);
       }),
-    addNeverShare: (id, terms) =>
+    addNeverShare: (id, terms) => change((state, stamp) => addTerms(find(state, id), terms, stamp)),
+    importInto: (idOrName, items, neverShare, opts) =>
       change((state, stamp) => {
-        const space = find(state, id);
-        if (!Array.isArray(terms)) throw new FoxspaceError("bad-space", "Never-share terms must be a list.");
-        space.neverShare = unique([...space.neverShare, ...terms.map((t, i) => checkTerm(t, `Never-share term ${i + 1}`))]);
-        return touch(space, stamp);
+        const space = lookup(state, idOrName) ?? (opts.create ? make(state, idOrName, false, stamp) : find(state, idOrName));
+        const result = addTo(space, items, stamp);
+        addTerms(space, neverShare, stamp);
+        return { space, ...result };
       }),
     addSpaces: (incoming) =>
       change((state, stamp) => {
