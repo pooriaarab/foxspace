@@ -46,6 +46,17 @@ describe("foxspace command", () => {
     expect(r.out).toContain("I am vegetarian and I do not drink alcohol.");
   });
 
+  it("G10 refuses to render a block with a never-share term", async () => {
+    const { env, run } = await setup();
+    const spaces = openSpaces({ env });
+    const work = await spaces.create("Work");
+    await spaces.addItems(work.id, [{ kind: "memory", text: "Client is Zephyrcorp.", sensitivity: "public" }]);
+    await spaces.setNeverShare(work.id, ["Zephyrcorp"]);
+    const stop = 'foxspace: This block holds a never-share term: "Zephyrcorp". Make that item private, or leave it unticked.\n';
+    expect(await run("render", "Work")).toEqual({ code: 1, out: "", err: stop });
+    expect(await run("render", "Work", "--for", "chatgpt", "--box", "more-about-you")).toEqual({ code: 1, out: "", err: stop });
+  });
+
   it("renders for a composer and for a provider box, with ticks", async () => {
     const { env, run } = await setup();
     await run("import", ARCHIVE, "--into", "Trip");
