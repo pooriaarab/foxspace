@@ -90,6 +90,12 @@ async function pressShortcut(page) {
   await bidi.send("script.evaluate", { target: { context: tree.result.contexts[0].context }, "moz:scope": "chrome", awaitPromise: false, expression: SHORTCUT });
   return frameOf(page, "/picker.html");
 }
+/** Wait for an insert to settle: the block is in the editor, or the picker says it is not. Remote runs are slow. */
+const landed = (page, picker) =>
+  Promise.any([
+    poll(page, () => (document.documentElement.dataset.editorState ?? "").startsWith("Context for this chat"), undefined, 15_000),
+    poll(picker, () => document.getElementById("status").textContent, undefined, 15_000),
+  ]).then(() => sleep(300), () => {});
 /** Choose the space by name in the picker: the extension seeds two example spaces first. */
 async function pickSpace(picker, name) {
   await picker.evaluate((n) => {
@@ -275,7 +281,7 @@ try {
     await pickSpace(picker, SPACE);
     const want = await preview();
     await picker.click("#insert");
-    await sleep(800);
+    await landed(page, picker);
     check(`${host}: the editor's model holds the block on an empty composer`, want, await editorState(page));
     if (!(await gone(page, "/picker.html"))) await picker.click("#close");
     await page.evaluate(() => window.chatEditor.clear());
@@ -285,14 +291,14 @@ try {
     await pickSpace(picker, SPACE);
     await picker.evaluate(() => (document.getElementById("add-text").value = ""));
     await picker.click("#insert");
-    await sleep(800);
+    await landed(page, picker);
     check(`${host}: the block goes in before the typed text`, `${want}\n\nhello world`, await editorState(page));
     const closed = await gone(page, "/picker.html");
     check(`${host}: the picker says the block went in`, true, closed);
     if (!closed) await picker.click("#close");
     await page.click(composer);
     await page.keyboard.press("Enter");
-    await poll(page, () => document.querySelectorAll("#sent li").length > 0, undefined, 5000).catch(() => false);
+    await poll(page, () => document.querySelectorAll("#sent li").length > 0, undefined, 15_000).catch(() => false);
     check(`${host}: Enter sends the editor's model through the guard`, [`${want}\n\nhello world`], await sent(page));
     await page.evaluate(() => {
       document.querySelector("foxspace-ui").remove();
@@ -317,7 +323,7 @@ try {
     dialog = await frameOf(page, "/guard.html");
     await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
     await dialog.click("#send");
-    await poll(page, () => document.querySelectorAll("#sent li").length === 2, undefined, 5000).catch(() => false);
+    await poll(page, () => document.querySelectorAll("#sent li").length === 2, undefined, 15_000).catch(() => false);
     check(`${host}: Send anyway sends the stopped Enter`, "my passport is AB123456", (await sent(page))[1] ?? "");
     // The site re-renders the composer, with the draft, while the dialog is open (A17).
     await page.click(composer);
@@ -327,8 +333,9 @@ try {
     await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
     await page.evaluate(() => window.chatEditor.rerender(true));
     await dialog.click("#send");
-    await poll(page, () => document.querySelectorAll("#sent li").length === 3, undefined, 5000).catch(() => false);
+    await poll(page, () => document.querySelectorAll("#sent li").length === 3, undefined, 15_000).catch(() => false);
     check(`${host}: Send anyway after a re-render sends from the new composer`, "my passport is AB123456", (await sent(page))[2] ?? "");
+    await page.close(); // a remote Firefox closes the session with too many tabs open
   }
 
   // 10. A public item that holds a never-share term: the picker names it and does not insert it (G10).
