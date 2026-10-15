@@ -22,6 +22,19 @@
     "default_popup": "popup.html",
     "default_icon": { "48": "icons/icon-48.png", "96": "icons/icon-96.png" }
   },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["picker.html", "icons/icon-48.png"],
+      "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"]
+    }
+  ],
   "options_ui": {
     "page": "spaces.html",
     "open_in_tab": true
