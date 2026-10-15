@@ -4,8 +4,17 @@
 <body class="frame">
   <header><img class="mark" src="icons/icon-48.png" alt="" width="20" height="20"><h1 id="title">Add a space</h1><button id="close" class="ghost small" type="button" aria-label="Close">Close</button></header>
   <label class="field-label" for="space">Space</label>
-  <select id="space"></select>
+  <div class="bar"><select id="space"></select><button id="new-space" class="ghost small" type="button">New space</button><button id="manage" class="ghost small" type="button">Spaces page</button></div>
+  <form id="make" class="bar" hidden><input id="make-name" placeholder="Name, for example Trip to Japan" aria-label="New space name" required><button class="primary small" type="submit">Create</button></form>
   <ul id="items" class="plain picks"></ul>
+  <form id="add" class="quick" hidden>
+    <textarea id="add-text" rows="2" placeholder="Add an item: an instruction, a fact about you, a snippet" aria-label="Item text" required></textarea>
+    <div class="bar">
+      <select id="add-kind" aria-label="Kind"><option value="instructions">Instructions</option><option value="memory">Memory</option><option value="preference">Preference</option><option value="snippet">Snippet</option></select>
+      <select id="add-level" aria-label="Sensitivity"><option value="public">Always share</option><option value="ask" selected>Ask each time</option><option value="private">Private, never share</option></select>
+      <button class="small" type="submit">Add item</button>
+    </div>
+  </form>
   <p id="left" class="note"></p>
   <pre id="preview" aria-label="What goes into the message box"></pre>
   <div class="bar"><button id="insert" class="primary" type="button">Insert</button><button id="copy" type="button">Copy</button><span id="count" class="note"></span></div>
