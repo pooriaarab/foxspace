@@ -9,3 +9,7 @@ export { memoryStore, storageAreaStore } from "./store.js";
 export type { SpaceStore, StorageAreaLike } from "./store.js";
 export { DIGIT_TERM, MAX_GUARD_CHARS, SPLIT_TERM, createGuard, normalizeForGuard, termProblem } from "./guard.js";
 export type { GuardResult, GuardTerm } from "./guard.js";
+export { INJECT_LIMIT, PROVIDERS, providerById, providerForHost } from "./providers.js";
+export type { Provider, ProviderId, SyncBox } from "./providers.js";
+export { renderForSync, renderSpace } from "./render.js";
+export type { Render, RenderFormat, RenderOptions } from "./render.js";
