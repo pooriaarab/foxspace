@@ -17,7 +17,7 @@ npm install foxspace
 ```
 
 The package needs Node.js 24 or later and includes TypeScript declarations.
-It has three runtime dependencies: `@modelcontextprotocol/sdk` and `zod` for the MCP server, and `foxtrail` for the extension's trail.
+It has two runtime dependencies, `@modelcontextprotocol/sdk` and `zod`, for the MCP server. The extension bundles `foxtrail` for its trail.
 The Firefox extension needs Firefox 153 or later.
 
 ## Make your first space

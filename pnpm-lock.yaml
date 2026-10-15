@@ -11,9 +11,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.1
         version: 1.32.1(zod@4.6.7)
-      foxtrail:
-        specifier: 0.1.4
-        version: 0.1.4
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -27,6 +24,9 @@ importers:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+      foxtrail:
+        specifier: 0.1.4
+        version: 0.1.4
       happy-dom:
         specifier: ^21.0.1
         version: 21.0.1
