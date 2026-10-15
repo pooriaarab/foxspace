@@ -86,6 +86,8 @@ export const pageHandlers = {
     if (!site) throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
     return { site: site.host, label: providerForHost(site.host)?.label ?? site.host, spaces: (await spaces.list()).map(forPicker) };
   },
+  // What the user has typed in the composer, so the picker can offer it as a new item.
+  "picker:draft": async (_, sender) => (await toTop(sender.tab.id, { type: "foxspace:read-composer" }).catch(() => undefined))?.text ?? "",
   // The picker frame gets the never-share terms that the block holds (G10); the page never does.
   "picker:render": async ({ id, ticked }) => {
     const { render, stops } = await block(id, ticked);
@@ -151,4 +153,33 @@ browser.runtime.onMessage.addListener((message, sender) => {
       (value) => ({ ok: true, value }),
       (error) => ({ ok: false, code: error instanceof FoxspaceError ? error.code : "error", error: error instanceof Error ? error.message : String(error) }),
     );
+});
+
+// A first run gets two example spaces, so the picker has something to show.
+const EXAMPLES = [
+  { name: "Trip to Japan", items: [
+    { kind: "instructions", text: "Plan for 2 adults on a mid budget. Prefer trains over flights.", sensitivity: "public" },
+    { kind: "memory", text: "We are a couple living in Vancouver.", sensitivity: "public" },
+    { kind: "preference", text: "Vegetarian food only.", sensitivity: "ask" },
+    { kind: "memory", text: "Passport number X1234567.", sensitivity: "private" },
+  ], neverShare: ["X1234567"] },
+  { name: "Work: Acme launch", items: [
+    { kind: "instructions", text: "Write in short, plain sentences for a developer audience.", sensitivity: "public" },
+    { kind: "snippet", text: "Launch date: the first Tuesday of next month.", sensitivity: "ask" },
+    { kind: "memory", text: "Q3 revenue target is 4.2M.", sensitivity: "private" },
+  ], neverShare: ["Project Zephyr"] },
+];
+async function seedExamples() {
+  if ((await browser.storage.local.get("seeded")).seeded) return;
+  const names = new Set((await spaces.list()).map((s) => s.name));
+  for (const example of EXAMPLES) {
+    if (names.has(example.name)) continue;
+    const space = await spaces.create(example.name);
+    await spaces.addItems(space.id, example.items);
+    await spaces.setNeverShare(space.id, example.neverShare);
+  }
+  await browser.storage.local.set({ seeded: true });
+}
+browser.runtime.onInstalled.addListener(() => {
+  seedExamples().catch(() => {});
 });

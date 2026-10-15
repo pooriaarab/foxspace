@@ -74,7 +74,7 @@ flowchart LR
 1. Each item has a kind (`instructions`, `preference`, `memory`, `snippet`) and a sensitivity.
    An item with none is `ask`. Text with control characters, bidi controls or zero-width spaces is refused.
 2. On chatgpt.com, claude.ai, chat.mistral.ai, gemini.google.com, www.perplexity.ai, grok.com and
-   chat.deepseek.com, a small foxspace button sits at the composer. Alt+Shift+K opens the same picker.
+   chat.deepseek.com, a small foxspace button sits at the composer. Alt+Shift+K (Control+Shift+K on a Mac) opens the same picker.
 3. The picker is an extension page in a frame inside a closed shadow root, so the chat page cannot read it.
    Public items always go in, `ask` items only when you tick them, and private items never reach the frame.
    A block that holds one of your never-share terms is not inserted; the picker names the term.
