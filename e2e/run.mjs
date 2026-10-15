@@ -66,6 +66,9 @@ try {
   const statusText = () => spaces.evaluate(() => document.getElementById("status").textContent);
   // 0. A new install has the two example spaces. Delete them, so the steps below start empty.
   const listNames = () => spaces.evaluate(() => [...document.querySelectorAll("#list li button span:first-child")].map((s) => s.textContent));
+  // The install seeds them in the background, so the page can load first: wait for the seed, then reload.
+  await poll(spaces, async () => (await browser.storage.local.get("seeded")).seeded === true);
+  if ((await spaces.evaluate(() => document.querySelectorAll("#list li button").length)) !== 2) await spaces.evaluate(() => location.reload());
   await poll(spaces, () => document.querySelectorAll("#list li button").length === 2);
   check("a new install has the example spaces", ["Trip to Japan", "Work: Acme launch"], (await listNames()).toSorted());
   for (const left of [1, 0]) {
