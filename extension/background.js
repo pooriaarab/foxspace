@@ -41,6 +41,15 @@ const held = browser.storage.session;
 const tokenOf = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const toTop = (tabId, message) => browser.tabs.sendMessage(tabId, message, { frameId: 0 });
 
+const termsOf = (all) => all.flatMap((s) => s.neverShare.map((term) => ({ term, from: s.name })));
+
+/** The block for a pick, and the never-share terms in it: an item can hold one (G10). */
+async function block(id, ticked) {
+  const [space, all] = await Promise.all([spaces.get(id), spaces.list()]);
+  const render = renderSpace(space, { ticked, limit: INJECT_LIMIT });
+  return { space, render, stops: createGuard(termsOf(all))(render.text).matches };
+}
+
 async function importInto({ text, into }) {
   const result = parseImport(text);
   if (result.format === "foxspace/v1") return { format: result.format, spaces: (await spaces.addSpaces(result.spaces)).map((s) => s.name) };
@@ -77,13 +86,17 @@ export const pageHandlers = {
     if (!site) throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
     return { site: site.host, label: providerForHost(site.host)?.label ?? site.host, spaces: (await spaces.list()).map(forPicker) };
   },
-  "picker:render": async ({ id, ticked }) => renderSpace(await spaces.get(id), { ticked, limit: INJECT_LIMIT }),
+  // The picker frame gets the never-share terms that the block holds (G10); the page never does.
+  "picker:render": async ({ id, ticked }) => {
+    const { render, stops } = await block(id, ticked);
+    return { ...render, stops };
+  },
   "picker:insert": async ({ id, ticked }, sender) => {
     const site = tabSite(sender.tab);
     if (!site) throw new FoxspaceError("bad-request", "Open a supported chat site to add a space.");
-    const space = await spaces.get(id);
-    const render = renderSpace(space, { ticked, limit: INJECT_LIMIT });
+    const { space, render, stops } = await block(id, ticked);
     if (!render.text) throw new FoxspaceError("bad-request", render.empty);
+    if (stops.length) throw new FoxspaceError("bad-request", `This block holds a never-share term: ${stops.map((m) => `"${m.term}"`).join(", ")}. Untick that item, or make it private.`);
     const result = await toTop(sender.tab.id, { type: "foxspace:insert", text: render.text });
     if (result?.ok && result.landed) await record({ kind: "space.inject", data: { space: space.name, site: site.host, items: render.included.length } });
     return { ...result, items: render.included.length };
@@ -101,8 +114,7 @@ export const pageHandlers = {
 export const contentHandlers = {
   "content:guard": async ({ text }) => {
     if (typeof text !== "string") throw new FoxspaceError("bad-request", "The text must be a string.");
-    const all = await spaces.list();
-    const result = createGuard(all.flatMap((s) => s.neverShare.map((term) => ({ term, from: s.name }))))(text);
+    const result = createGuard(termsOf(await spaces.list()))(text);
     if (result.ok) return { ok: true };
     const token = tokenOf();
     await held.set({ [token]: { matches: result.matches, tooLong: result.tooLong } });
