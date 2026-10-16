@@ -74,13 +74,15 @@ const KINDS = {
     const box = host.appendChild(Object.assign(document.createElement("textarea"), { rows: 2 }));
     for (const [name, value] of Object.entries(attrs)) box.setAttribute(name, value);
     let state = "";
-    box.addEventListener("input", () => ((state = box.value), changed()));
-    box.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || event.shiftKey) return;
+    // Delegated from the host, as React does from its root: a removed box sends nothing.
+    const off = new AbortController();
+    host.addEventListener("input", (event) => event.target === box && ((state = box.value), changed()), { signal: off.signal });
+    host.addEventListener("keydown", (event) => {
+      if (event.target !== box || event.key !== "Enter" || event.shiftKey) return;
       event.preventDefault();
       submit();
-    });
-    return { model: () => state, load: (text) => ((box.value = state = text), changed()), destroy: () => box.remove() };
+    }, { signal: off.signal });
+    return { model: () => state, load: (text) => ((box.value = state = text), changed()), destroy: () => (off.abort(), box.remove()) };
   },
   plain(host, attrs, changed) {
     const box = host.appendChild(Object.assign(document.createElement("div"), { contentEditable: "plaintext-only" }));
