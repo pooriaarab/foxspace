@@ -65,6 +65,31 @@ async function clickFox(page, composer) {
 }
 const sent = (page) => page.evaluate(() => [...document.querySelectorAll("#sent li")].map((li) => li.textContent));
 const editorState = (page) => page.evaluate(() => document.documentElement.dataset.editorState ?? "");
+// Alt+Shift+K, typed in the browser window from the parent process. The manifest binds
+// MacCtrl+Shift+K on macOS, so there the first key is Control.
+const MOD = process.platform === "darwin" ? `key("Control", "ControlLeft", 17)` : `key("Alt", "AltLeft", 18)`;
+const SHORTCUT = `(() => {
+  const tip = Cc["@mozilla.org/text-input-processor;1"].createInstance(Ci.nsITextInputProcessor);
+  tip.beginInputTransactionForTests(window);
+  const key = (k, code, keyCode) => new KeyboardEvent("", { key: k, code, keyCode });
+  const keys = [${MOD}, key("Shift", "ShiftLeft", 16), key("K", "KeyK", 75)];
+  for (const k of keys) tip.keydown(k);
+  for (const k of keys.reverse()) tip.keyup(k);
+})()`;
+/**
+ * Press Alt+Shift+K as a user does, to open the picker through the
+ * extension's command. BiDi key actions stay in the page and never reach
+ * the browser's shortcuts, so the key goes in from the browser window: the
+ * chrome scope that -remote-allow-system-access opens. Ichabod's Firefox
+ * runs without it, so in that mode the caller clicks the button instead.
+ */
+async function pressShortcut(page) {
+  await page.bringToFront();
+  const bidi = fox.browser.connection;
+  const tree = await bidi.send("browsingContext.getTree", { "moz:scope": "chrome" });
+  await bidi.send("script.evaluate", { target: { context: tree.result.contexts[0].context }, "moz:scope": "chrome", awaitPromise: false, expression: SHORTCUT });
+  return frameOf(page, "/picker.html");
+}
 /** Choose the space by name in the picker: the extension seeds two example spaces first. */
 async function pickSpace(picker, name) {
   await picker.evaluate((n) => {
@@ -233,12 +258,20 @@ try {
   await poll(sync, () => document.getElementById("status").textContent);
   check("Copy copies the sync text", `Copied ${syncText.length} characters. Paste them in ChatGPT: More about you.`, await sync.evaluate(() => document.getElementById("status").textContent));
 
-  // 9. Every site, with its own editor: the block goes in line for line, on
-  // an empty composer and before the text the user typed, and Enter sends
-  // the editor's model through the guard (A3, A12).
+  // 9. Every site, with its own editor: Alt+Shift+K opens the picker, the
+  // block goes in line for line, on an empty composer and before the text
+  // the user typed, and Enter sends the editor's model through the guard.
+  // A re-render of the composer and of foxspace-ui brings the button and
+  // the guard back (A3, A12, A14, A15).
+  const local = record.mode === "local";
+  if (!local) record.skipped = ["Alt+Shift+K: Ichabod's Firefox has no system access, so no key reaches the browser's shortcuts. The button opens the picker."];
   for (const [host, composer] of Object.entries(SITES)) {
     const page = await openChat(fox, `https://${host}/`, composer);
-    picker = await clickFox(page, composer);
+    if (local) {
+      picker = await pressShortcut(page);
+      check(`${host}: Alt+Shift+K opens the picker`, true, Boolean(picker));
+      await poll(picker, () => document.getElementById("count").textContent);
+    } else picker = await clickFox(page, composer);
     await pickSpace(picker, SPACE);
     const want = await preview();
     await picker.click("#insert");
@@ -261,6 +294,22 @@ try {
     await page.keyboard.press("Enter");
     await poll(page, () => document.querySelectorAll("#sent li").length > 0, undefined, 5000).catch(() => false);
     check(`${host}: Enter sends the editor's model through the guard`, [`${want}\n\nhello world`], await sent(page));
+    await page.evaluate(() => {
+      document.querySelector("foxspace-ui").remove();
+      window.chatEditor.rerender(false);
+    });
+    await sleep(900); // the content script puts its button back every 700 ms
+    check(`${host}: the button comes back after a re-render`, true, await page.evaluate(() => Boolean(document.querySelector("foxspace-ui"))));
+    picker = await clickFox(page, composer);
+    check(`${host}: the button on the new composer opens the picker`, true, Boolean(picker));
+    await picker.click("#close");
+    await page.click(composer);
+    await page.keyboard.type("my passport is AB123456");
+    await page.keyboard.press("Enter");
+    dialog = await frameOf(page, "/guard.html");
+    check(`${host}: the guard stops an Enter on the new composer`, [true, 1], [Boolean(dialog), (await sent(page)).length]);
+    await poll(dialog, () => document.querySelectorAll("#terms li").length > 0);
+    await dialog.click("#edit");
   }
 
   // 10. A public item that holds a never-share term: the picker names it and does not insert it (G10).
