@@ -83,6 +83,7 @@ the reason, and it never guesses where text should go.
 | A13 | The read-back says the block went in when its lines ran together or ran into the user's text, or says it did not when the editor renders its model a moment later (Lexical) | The read-back waits for the editor's update, then needs each line of the block, in order, as a line of the composer. Blank lines may differ. A miss says so and offers Copy | tests/composer.test.ts, E2E |
 | A14 | Alt+Shift+K is not bound, or its command does not open the picker in the chat tab | The command opens the picker on each site. The E2E presses the real key in the browser window, so a broken binding fails it | E2E (local Firefox; Ichabod's Firefox has no system access, so there the run records the check as skipped) |
 | A15 | The site re-renders its composer, or removes `foxspace-ui` | The content script puts its button back within 700 ms, on the new composer, and the guard stops an Enter there | E2E, on each site |
+| A16 | Send anyway replays a stopped Enter while the focus is in the guard dialog, and an editor that acts only on keys while it has the focus (Quill, on Gemini) ignores the replay, so nothing is sent | The replay focuses the composer, then sends the Enter | E2E, on each site |
 
 ## Release
 
