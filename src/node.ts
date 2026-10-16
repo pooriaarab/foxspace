@@ -1,0 +1,104 @@
+// foxspace/node: the file store that the CLI and the MCP server use.
+// The file is $FOXSPACE_HOME/spaces.json, default ~/.foxspace/spaces.json.
+import { chmod, mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { setTimeout as sleep } from "node:timers/promises";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { FoxspaceError } from "./errors.js";
+import { MAX_IMPORT_BYTES } from "./import.js";
+import { createSpaces, type Spaces } from "./spaces.js";
+import type { SpaceStore } from "./store.js";
+
+/** The directory that holds spaces.json. */
+export function spacesHome(env: NodeJS.ProcessEnv = process.env): string {
+  return env.FOXSPACE_HOME || join(homedir(), ".foxspace");
+}
+
+/** The path of the store file. */
+export const spacesPath = (env: NodeJS.ProcessEnv = process.env) => join(spacesHome(env), "spaces.json");
+
+/**
+ * A store in one JSON file. A write goes to a temp file first and then
+ * replaces the old file, so a crash never leaves half a file. A directory
+ * that foxspace makes is 0700; it never changes the mode of one that exists.
+ * The file is 0600. A file that is not JSON fails loudly; foxspace never
+ * writes over it. A change holds <path>.lock, made with an exclusive
+ * create that holds the pid, so two processes never change the file at
+ * once (N3).
+ */
+export function fileStore(path: string): SpaceStore {
+  // mkdir gives the first directory it made, or undefined when all exist.
+  const makeHome = async () => {
+    if (await mkdir(dirname(path), { recursive: true, mode: 0o700 })) await chmod(dirname(path), 0o700);
+  };
+  const lockPath = `${path}.lock`;
+  return {
+    async read() {
+      let text: string;
+      try {
+        await using handle = await open(path);
+        // N4: the size decides before a byte is read.
+        if ((await handle.stat()).size > MAX_IMPORT_BYTES * 8) throw new FoxspaceError("bad-store", `${path} is too large to be a foxspace store.`);
+        text = await handle.readFile("utf8");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+        throw error;
+      }
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new FoxspaceError("bad-store", `${path} is not valid JSON. foxspace did not change it. Fix it or move it away.`);
+      }
+    },
+    async write(state) {
+      await makeHome();
+      const temp = `${path}.${process.pid}.${Date.now()}.tmp`;
+      try {
+        await writeFile(temp, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+        await rename(temp, path);
+      } catch (error) {
+        await rm(temp, { force: true });
+        throw error;
+      }
+    },
+    async lock(fn) {
+      await makeHome();
+      const deadline = Date.now() + LOCK_WAIT_MS;
+      for (;;) {
+        try {
+          await writeFile(lockPath, String(process.pid), { flag: "wx", mode: 0o600 });
+          break;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+        }
+        if (await holderGone(lockPath)) await rm(lockPath, { force: true });
+        else if (Date.now() > deadline) throw new FoxspaceError("bad-store", `${lockPath} is held by another foxspace process. If none runs, remove that file.`);
+        else await sleep(10 + Math.random() * 20);
+      }
+      try {
+        return await fn();
+      } finally {
+        await rm(lockPath, { force: true });
+      }
+    },
+  };
+}
+
+const LOCK_WAIT_MS = 10_000;
+
+/** True when the lock names a process that does not run. An empty lock is one being made. */
+async function holderGone(lockPath: string): Promise<boolean> {
+  const pid = Number(await readFile(lockPath, "utf8").catch(() => ""));
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ESRCH";
+  }
+}
+
+/** createSpaces on the file store at $FOXSPACE_HOME/spaces.json. */
+export function openSpaces(options: { env?: NodeJS.ProcessEnv } = {}): Spaces {
+  return createSpaces({ store: fileStore(spacesPath(options.env)) });
+}

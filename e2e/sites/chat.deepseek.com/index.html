@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>DeepSeek</title><link rel="stylesheet" href="/style.css"></head>
+<body class="deepseek"><main><h1>How can I help you today?</h1>
+<div class="composer"><div id="editor"></div>
+<div role="button" class="send ds-button ds-button--primary ds-button--circle" aria-disabled="false">&#8593;</div></div><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "textarea", host: "#editor", attrs: { id: "chat-input", placeholder: "Message DeepSeek" }, send: "div.ds-button--primary" });</script>
+</body></html>

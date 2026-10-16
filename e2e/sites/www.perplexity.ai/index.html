@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Perplexity</title><link rel="stylesheet" href="/style.css"></head>
+<body class="perplexity"><main><h1>Where knowledge begins</h1>
+<div class="composer"><div id="editor"></div>
+<button class="send" aria-label="Submit" type="button">&#8593;</button></div><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "lexical", host: "#editor", attrs: { id: "ask-input", role: "textbox" }, send: 'button[aria-label="Submit"]' });</script>
+</body></html>

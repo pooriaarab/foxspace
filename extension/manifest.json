@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "foxspace — your AI context on any chat site",
+  "version": "0.1.0",
+  "description": "Task spaces of AI context that you add to any chat site, with a level per item and a guard for terms you never share.",
+  "icons": { "48": "icons/icon-48.png", "96": "icons/icon-96.png", "128": "icons/icon-128.png" },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "foxspace@pooriaarab",
+      "strict_min_version": "153.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "permissions": ["storage"],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "action": {
+    "default_title": "foxspace",
+    "default_popup": "popup.html",
+    "default_icon": { "48": "icons/icon-48.png", "96": "icons/icon-96.png" }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["picker.html", "guard.html", "icons/icon-48.png"],
+      "matches": ["https://chatgpt.com/*", "https://claude.ai/*", "https://chat.mistral.ai/*", "https://gemini.google.com/*", "https://www.perplexity.ai/*", "https://grok.com/*", "https://chat.deepseek.com/*"]
+    }
+  ],
+  "commands": {
+    "open-picker": {
+      "suggested_key": { "default": "Alt+Shift+K", "mac": "MacCtrl+Shift+K" },
+      "description": "Add a space to the message box"
+    }
+  },
+  "options_ui": {
+    "page": "spaces.html",
+    "open_in_tab": true
+  }
+}

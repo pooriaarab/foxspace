@@ -1,0 +1,14 @@
+{
+  "format": "foxcache/v1",
+  "exportedAt": "2026-10-14T18:00:00.000Z",
+  "memories": [
+    { "id": "m1", "site": "chatgpt.com", "text": "I am vegetarian and I do not drink alcohol.", "sensitivity": "public" },
+    { "id": "m2", "site": "claude.ai", "text": "My budget for the Japan trip is 3000 CAD." },
+    { "id": "m3", "site": "chatgpt.com", "text": "My passport number is AB123456.", "sensitivity": "private" },
+    { "id": "m4", "site": "gemini.google.com", "text": "<img src=x onerror=\"document.title='pwned'\"> I like quiet hotels." }
+  ],
+  "preferences": [
+    { "site": "chatgpt.com", "text": "Answer in short paragraphs.", "sensitivity": "public" }
+  ],
+  "chats": [{ "site": "chatgpt.com", "title": "Kyoto in May", "messages": [] }]
+}
