@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>ChatGPT</title><link rel="stylesheet" href="/style.css"></head>
+<body><main><h1>What can I help with?</h1>
+<form class="composer" onsubmit="return false"><div id="editor"></div>
+<button class="send" data-testid="send-button" aria-label="Send prompt" type="button">&#8593;</button></form><ol id="sent"></ol></main>
+<script type="module">import { chat } from "/editor.js"; chat({ kind: "prosemirror", host: "#editor", attrs: { id: "prompt-textarea", translate: "no", role: "textbox" }, send: '[data-testid="send-button"]' });</script>
+</body></html>

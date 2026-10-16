@@ -1,0 +1,85 @@
+{
+  "name": "foxspace",
+  "version": "0.1.0",
+  "description": "Task spaces of AI context that you add to any chat site, with a level per item and a guard for terms you never share.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Pooria Arab",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pooriaarab/foxspace.git"
+  },
+  "homepage": "https://github.com/pooriaarab/foxspace#readme",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "bin": {
+    "foxspace": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --deny-warnings",
+    "test": "vitest run --passWithNoTests",
+    "ci:local": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:ext && pnpm lint:ext && pnpm check:amo",
+    "build:ext": "node scripts/build-ext.mjs",
+    "lint:ext": "web-ext lint -s dist-ext --warnings-as-errors",
+    "check:amo": "node scripts/amo-listing.mjs check",
+    "e2e": "node scripts/build-ext.mjs --e2e && node e2e/run.mjs"
+  },
+  "devDependencies": {
+    "@lexical/rich-text": "^0.52.0",
+    "@types/node": "^24.19.1",
+    "create-foxkit": "^0.1.8",
+    "esbuild": "^0.28.2",
+    "foxtrail": "0.1.4",
+    "happy-dom": "^21.0.1",
+    "lexical": "^0.52.0",
+    "oxlint": "^1.87.0",
+    "prosemirror-commands": "^1.7.2",
+    "prosemirror-keymap": "^1.2.3",
+    "prosemirror-model": "^1.25.12",
+    "prosemirror-schema-basic": "^1.2.5",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-view": "^1.42.6",
+    "quill": "^2.0.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3",
+    "web-ext": "^10.7.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "keywords": [
+    "firefox",
+    "webextension",
+    "ai-context",
+    "chatgpt",
+    "claude",
+    "gemini",
+    "prompt",
+    "personal-context",
+    "privacy",
+    "dlp",
+    "mcp",
+    "mcp-server",
+    "scent",
+    "foxcache",
+    "typescript"
+  ]
+}

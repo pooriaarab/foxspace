@@ -1,0 +1,170 @@
+# main = staging, release = production.
+# Merge main into release to publish the version in package.json to npm.
+name: Release
+
+on:
+  push:
+    branches: [release]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+# No job keeps a token in its checkout. The jobs that run dependency code
+# (build, amo) can only read. The jobs that hold a write or OIDC token
+# (npm, github-release) install and run nothing from the lockfile (P1).
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Refuse a version that is already released
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v${VERSION}")" ]; then
+            echo "::error::Version ${VERSION} is already released. Bump the version in package.json."
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ci:local
+      - run: npm pack
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            *.tgz
+            dist-ext/
+          if-no-files-found: error
+
+  npm:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VER: ${{ needs.build.outputs.version }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Secret NPM_TOKEN is empty. Add an npm automation token as the repository secret NPM_TOKEN, then push to release again."
+            exit 1
+          fi
+          TARBALL=$(ls ./*.tgz)
+          PKG=$(tar -xOzf "$TARBALL" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
+          if npm view "$PKG@$VER" version >/dev/null 2>&1; then
+            echo "$PKG@$VER is already on npm. Skipping publish so the signing step can run."
+          else
+            # The tarball that the build job tested; no script of the package runs here.
+            npm publish "$TARBALL" --provenance --access public --ignore-scripts
+          fi
+
+  amo:
+    needs: npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      review_url: ${{ steps.sign.outputs.review_url }}
+      slug: ${{ steps.sign.outputs.slug }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+      - name: Submit the extension to AMO as a listed add-on
+        id: sign
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          missing=0
+          for name in AMO_JWT_ISSUER AMO_JWT_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is empty. Add your AMO API key as repository secrets AMO_JWT_ISSUER and AMO_JWT_SECRET."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          node scripts/amo-listing.mjs check
+          echo "slug=$(node -p "require('./extension/amo-metadata.json').slug")" >> "$GITHUB_OUTPUT"
+          # A re-run after a later step failed must not submit the same
+          # version again: AMO refuses a version number it already has.
+          STATUS=$(node scripts/amo-listing.mjs version-status)
+          if [ "${STATUS%% *}" = "listed" ]; then
+            echo "AMO already has this version as listed. Skipping web-ext sign."
+            echo "review_url=$(echo "${STATUS#listed}" | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          else
+            node scripts/amo-listing.mjs metadata "$RUNNER_TEMP/amo-metadata.json"
+            # AMO reviewers get the source, because dist-ext/ is bundled.
+            git archive --format=zip -o source.zip HEAD
+            # A listed version waits for AMO review, which can take days. With
+            # --approval-timeout=0, web-ext returns after AMO accepts the
+            # upload, the listing and the source, and it downloads no signed
+            # file (web-ext 10, lib/util/submit-addon.js, doAfterSubmit). AMO
+            # publishes the signed file on the listing page after approval.
+            pnpm exec web-ext sign -s dist-ext -a web-ext-artifacts --channel=listed \
+              --amo-metadata "$RUNNER_TEMP/amo-metadata.json" --approval-timeout=0 \
+              --api-key="$AMO_JWT_ISSUER" --api-secret="$AMO_JWT_SECRET" \
+              --upload-source-code source.zip 2>&1 | tee "$RUNNER_TEMP/sign.log"
+            if ! grep -q "Waiting for approval and download of signed XPI skipped" "$RUNNER_TEMP/sign.log"; then
+              echo "::error::web-ext did not confirm the listed submission. Read the web-ext log above."
+              exit 1
+            fi
+            echo "review_url=$(sed -n 's/.*can be downloaded from \([^ ]*\).*/\1/p' "$RUNNER_TEMP/sign.log" | tail -1)" >> "$GITHUB_OUTPUT"
+          fi
+          # The privacy policy and the listing icon have their own AMO endpoints.
+          node scripts/amo-listing.mjs after-submit
+
+  github-release:
+    needs: [build, amo]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # create the tag and the GitHub release
+    steps:
+      - name: Tag and create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SLUG: ${{ needs.amo.outputs.slug }}
+          REVIEW_URL: ${{ needs.amo.outputs.review_url }}
+        run: |
+          # --notes goes before the generated notes.
+          NOTES=(--notes "Submitted for AMO review as a listed add-on. After approval, install it from https://addons.mozilla.org/firefox/addon/${SLUG}/ (review status for the authors: ${REVIEW_URL:-the AMO Developer Hub}).")
+          # gh creates the tag v<version> on this commit when it does not exist.
+          gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v${VERSION}" --generate-notes "${NOTES[@]}"

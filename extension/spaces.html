@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>foxspace spaces</title><link rel="stylesheet" href="style.css"></head>
+<body class="page">
+  <header><img class="mark" src="icons/icon-48.png" alt="" width="22" height="22"><h1>foxspace</h1>
+    <nav><a href="spaces.html" aria-current="page">Spaces</a><a href="sync.html">Sync</a></nav></header>
+  <p class="note">A space holds the context for one kind of task. On a chat site, press the foxspace button by the message box, or Alt+Shift+K (Control+Shift+K on a Mac). You see the text before you send.</p>
+  <p class="legend-key"><span><b class="public">Public</b>: always goes in</span><span><b class="ask">Ask</b>: only when you tick it</span><span><b>Private</b>: never leaves this browser</span></p>
+  <p id="status" class="status" role="status"></p>
+  <div class="layout">
+    <aside>
+      <h2>Spaces</h2>
+      <ul id="list" class="plain"></ul>
+      <form id="new" class="bar"><input id="new-name" placeholder="New space name" maxlength="80" aria-label="New space name" required><button class="primary">Create</button></form>
+    </aside>
+    <div class="stack">
+    <section id="editor" class="stack" hidden>
+      <div class="card">
+        <div class="name-row"><input id="name" maxlength="80" aria-label="Space name"><button id="delete" class="danger small" type="button">Delete</button></div>
+        <label class="check"><input id="agent" type="checkbox"> Let agents read the public items (foxspace MCP server)</label>
+      </div>
+      <div class="card">
+        <h2>Items</h2>
+        <ul id="items" class="plain"></ul>
+        <form id="add" class="add">
+          <select id="add-kind" aria-label="Kind"><option value="instructions">Instructions</option><option value="preference">Preference</option><option value="memory" selected>Memory</option><option value="snippet">Snippet</option></select>
+          <select id="add-sens" class="sens" data-level="ask" aria-label="Who can read it"><option value="public">public</option><option value="ask" selected>ask</option><option value="private">private</option></select>
+          <span></span>
+          <textarea id="add-text" maxlength="4000" placeholder="Paste or type. Each paragraph becomes one item." aria-label="Item text" required></textarea>
+          <div class="bar"><button class="primary">Add</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Never share</h2>
+        <p class="note">foxspace stops any message that holds one of these terms, a short private item, or an API key. One term per line, for example a passport number.</p>
+        <textarea id="terms" rows="3" aria-label="Never-share terms" spellcheck="false"></textarea>
+        <div class="bar"><button id="save-terms" type="button">Save</button></div>
+      </div>
+    </section>
+      <div class="card">
+        <h2>Import</h2>
+        <p class="note">Paste an export from foxcache, foxpack, foxprefs or foxspace, or choose its file. Items keep their level; an item with no level is "ask".</p>
+        <textarea id="import-text" rows="3" aria-label="Export to import" spellcheck="false" placeholder='{"format": "foxcache/v1", ...}'></textarea>
+        <div class="bar"><button id="import" class="primary" type="button">Import</button><button id="import-pick" type="button">Choose a file</button><input id="import-file" type="file" accept="application/json,.json" hidden><button id="export" class="ghost" type="button">Export all spaces</button></div>
+      </div>
+      <div class="card">
+        <h2>Recent injections</h2>
+        <p class="note">Which space went into which site, and when. A foxtrail log in this browser shows any edit.</p>
+        <ul id="trail" class="plain trail"></ul>
+        <p id="trail-check" class="note"></p>
+      </div>
+    </div>
+  </div>
+  <script src="spaces.js"></script>
+</body>
+</html>
